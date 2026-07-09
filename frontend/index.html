@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- SEO Meta Tags -->
+    <title>StudyMate AI — Your Educational Partner</title>
+    <meta
+      name="description"
+      content="StudyMate AI is your AI-powered educational partner. Log in to continue your personalized learning journey."
+    />
+    <meta name="keywords" content="AI tutor, study, education, learning, StudyMate AI" />
+    <meta name="author" content="StudyMate AI" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph / Social -->
+    <meta property="og:title" content="StudyMate AI — Your Educational Partner" />
+    <meta property="og:description" content="AI-powered study tutor for personalized learning." />
+    <meta property="og:type" content="website" />
+
+    <!-- Favicon placeholder -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Google Fonts and Material Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    
+    <!-- Stitch Design Tokens Tailwind Config -->
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+              "surface-container-lowest": "#ffffff",
+              "secondary-container": "#2170e4",
+              "surface-dim": "#cbdbf5",
+              "surface-container-low": "#eff4ff",
+              "secondary-fixed": "#d8e2ff",
+              "on-primary-container": "#dad7ff",
+              "surface-tint": "#4d44e3",
+              "inverse-on-surface": "#eaf1ff",
+              "tertiary-fixed": "#6bff8f",
+              "on-secondary-container": "#fefcff",
+              "tertiary": "#005523",
+              "tertiary-container": "#007030",
+              "primary": "#3525cd",
+              "on-tertiary-container": "#63f889",
+              "surface-container": "#e5eeff",
+              "on-error": "#ffffff",
+              "inverse-primary": "#c3c0ff",
+              "surface-container-high": "#dce9ff",
+              "on-error-container": "#93000a",
+              "error-container": "#ffdad6",
+              "on-secondary-fixed": "#001a42",
+              "on-primary-fixed": "#0f0069",
+              "inverse-surface": "#213145",
+              "on-surface-variant": "#464555",
+              "primary-container": "#4f46e5",
+              "surface-bright": "#f8f9ff",
+              "on-tertiary": "#ffffff",
+              "secondary": "#0058be",
+              "on-primary": "#ffffff",
+              "secondary-fixed-dim": "#adc6ff",
+              "on-tertiary-fixed": "#002109",
+              "on-secondary-fixed-variant": "#004395",
+              "primary-fixed": "#e2dfff",
+              "outline-variant": "#c7c4d8",
+              "outline": "#777587",
+              "tertiary-fixed-dim": "#4ae176",
+              "primary-fixed-dim": "#c3c0ff",
+              "error": "#ba1a1a",
+              "on-surface": "#0b1c30",
+              "on-secondary": "#ffffff",
+              "background": "#f8f9ff",
+              "on-background": "#0b1c30",
+              "surface": "#f8f9ff",
+              "surface-container-highest": "#d3e4fe",
+              "on-primary-fixed-variant": "#3323cc",
+              "surface-variant": "#d3e4fe",
+              "on-tertiary-fixed-variant": "#005321"
+            },
+            "borderRadius": {
+              "DEFAULT": "0.25rem",
+              "lg": "0.5rem",
+              "xl": "0.75rem",
+              "2xl": "20px",
+              "full": "9999px"
+            },
+            "spacing": {
+              "md": "24px",
+              "sm": "16px",
+              "xl": "80px",
+              "lg": "48px",
+              "base": "4px",
+              "gutter": "24px",
+              "xs": "8px",
+              "container-max": "1280px"
+            },
+            "fontFamily": {
+              "label-sm": ["Inter"],
+              "headline-lg": ["Inter"],
+              "body-lg": ["Inter"],
+              "title-md": ["Inter"],
+              "headline-xl": ["Inter"],
+              "body-md": ["Inter"],
+              "label-md": ["Inter"],
+              "headline-lg-mobile": ["Inter"]
+            },
+            "fontSize": {
+              "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+              "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+              "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+              "title-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+              "headline-xl": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+              "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+              "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+              "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        display: inline-block;
+        vertical-align: middle;
+      }
+    </style>
+  </head>
+  <body class="bg-background text-on-surface font-body-md antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
