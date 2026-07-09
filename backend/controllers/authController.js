@@ -89,6 +89,20 @@ const login = async (req, res) => {
       });
     }
 
+    // Auto-create demo user if using mock credentials
+    if (email.toLowerCase() === "demo@studymate.ai" && password === "password123") {
+      let user = await User.findOne({ email: "demo@studymate.ai" }).select("+password");
+      if (!user) {
+        user = await User.create({
+          name: "Demo Student",
+          email: "demo@studymate.ai",
+          password: "password123",
+          isVerified: true,
+        });
+      }
+      return sendTokenResponse(user, 200, res);
+    }
+
     // Find user and explicitly select password (it's excluded by default)
     const user = await User.findOne({ email: email.toLowerCase() }).select(
       "+password"

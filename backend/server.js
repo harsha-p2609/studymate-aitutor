@@ -91,6 +91,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/study-plan", require("./routes/studyPlanRoutes"));
 app.use("/api/quizzes", require("./routes/quizRoutes"));
 app.use("/api/chat", require("./routes/chatRoutes"));
+app.use("/api/flashcards", require("./routes/flashcardRoutes"));
 
 // ── 404 Handler ─────────────────────────────────────────────
 app.use((req, res) => {
