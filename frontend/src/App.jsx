@@ -20,6 +20,8 @@ import StudyPlanPage from "./pages/StudyPlanPage";
 import AiTutorPage from "./pages/AiTutorPage";
 import QuizzesPage from "./pages/QuizzesPage";
 import QuizInterfacePage from "./pages/QuizInterfacePage";
+import FlashcardsPage from "./pages/FlashcardsPage";
+import FlashcardSessionPage from "./pages/FlashcardSessionPage";
 
 // ── Protected Route Component ────────────────────────────────
 // Redirects unauthenticated users to login
@@ -148,6 +150,24 @@ const AppRoutes = () => {
             <Layout>
               <QuizInterfacePage />
             </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/flashcards"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FlashcardsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/flashcards/study/:id"
+        element={
+          <ProtectedRoute>
+            <FlashcardSessionPage />
           </ProtectedRoute>
         }
       />

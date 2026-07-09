@@ -44,7 +44,7 @@ const LoginForm = () => {
     handleSubmit,
     formState: { errors },
   } = useForm({
-    defaultValues: { email: "", password: "" },
+    defaultValues: { email: "demo@studymate.ai", password: "password123" },
   });
 
   // Form submission

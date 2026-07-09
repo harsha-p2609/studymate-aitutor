@@ -23,6 +23,7 @@ const Layout = ({ children }) => {
     { name: "My Study Plan", path: "/study-plan", icon: "event_note" },
     { name: "AI Tutor", path: "/ai-tutor", icon: "psychology" },
     { name: "Quizzes", path: "/quizzes", icon: "quiz" },
+    { name: "Flashcards", path: "/flashcards", icon: "style" },
   ];
 
   const getPageTitle = () => {
@@ -35,6 +36,8 @@ const Layout = ({ children }) => {
         return "AI Tutor";
       case "/quizzes":
         return "Quizzes";
+      case "/flashcards":
+        return "Flashcards";
       default:
         if (currentPath.startsWith("/quiz/")) {
           return "Quiz Interface";
