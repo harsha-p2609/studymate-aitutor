@@ -16,6 +16,56 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [aiPrompt, setAiPrompt] = useState("");
 
+  // Modal states for Dynamic Roadmap Generation
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [topic, setTopic] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
+
+  const steps = [
+    "Contacting StudyMate AI...",
+    "Analyzing core concepts...",
+    "Drafting educational roadmap...",
+    "Creating key timeline modules...",
+    "Seeding study plan database...",
+  ];
+
+  // Rotate loading steps every 1.5 seconds for active feedback
+  useEffect(() => {
+    let interval;
+    if (isGenerating) {
+      interval = setInterval(() => {
+        setLoadingStep((prev) => (prev + 1) % steps.length);
+      }, 1500);
+    }
+    return () => clearInterval(interval);
+  }, [isGenerating]);
+
+  const handleGenerateRoadmap = async (e) => {
+    e.preventDefault();
+    if (!topic || topic.trim() === "") {
+      toast.error("Please enter a subject topic.");
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      setLoadingStep(0);
+      const res = await api.post("/study-plan/regenerate", { topic });
+      if (res.data.success) {
+        toast.success("New study roadmap generated successfully! 🚀");
+        setStudyPlan(res.data.data);
+        setIsModalOpen(false);
+        setTopic("");
+      }
+    } catch (err) {
+      console.error("Error generating roadmap:", err);
+      toast.error("Failed to generate study roadmap. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -444,7 +494,7 @@ const DashboardPage = () => {
 
       {/* Floating Action Button (FAB) for starting new session */}
       <button
-        onClick={() => navigate("/ai-tutor", { state: { initialPrompt: "I want to start a new focused study session!" } })}
+        onClick={() => setIsModalOpen(true)}
         className="fixed right-6 bottom-20 md:bottom-10 w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-40 group"
       >
         <span className="material-symbols-outlined text-[32px]">add</span>
@@ -452,6 +502,88 @@ const DashboardPage = () => {
           New Study Session
         </span>
       </button>
+
+      {/* Generate New Roadmap Modal Overlay */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-md bg-on-background/40 backdrop-blur-sm transition-all">
+          <div className="bg-white border border-outline-variant rounded-2xl w-full max-w-md p-lg shadow-xl relative animate-in fade-in zoom-in duration-150">
+            {/* Close Button */}
+            <button
+              onClick={() => !isGenerating && setIsModalOpen(false)}
+              className="absolute right-4 top-4 w-8 h-8 rounded-lg hover:bg-surface-container-high text-on-surface-variant flex items-center justify-center transition-colors cursor-pointer"
+              disabled={isGenerating}
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+
+            {!isGenerating ? (
+              <form onSubmit={handleGenerateRoadmap}>
+                <div className="w-12 h-12 bg-primary-container text-on-primary-container rounded-full flex items-center justify-center mx-auto mb-md">
+                  <span className="material-symbols-outlined text-[28px]">route</span>
+                </div>
+                <h3 className="font-title-md text-title-md font-bold text-on-surface mb-xs text-center">
+                  Generate New Study Roadmap
+                </h3>
+                <p className="text-on-surface-variant font-body-md mb-md text-center">
+                  Enter a subject or skill you want to master. StudyMate AI will generate a customized roadmap and goals for you in real-time.
+                </p>
+
+                <div className="mb-lg text-left">
+                  <label htmlFor="roadmap-topic-input" className="block text-label-sm font-label-sm text-on-surface mb-2 font-bold uppercase tracking-wider">
+                    Subject / Topic
+                  </label>
+                  <input
+                    id="roadmap-topic-input"
+                    type="text"
+                    required
+                    className="w-full px-md py-3 border border-outline-variant rounded-xl bg-surface-container-low focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all font-body-md text-on-surface"
+                    placeholder="e.g. Machine Learning, DBMS, Operating Systems"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex gap-sm">
+                  <button
+                    type="submit"
+                    className="w-full py-sm bg-primary text-on-primary font-label-md text-label-md rounded-xl hover:opacity-90 font-bold active:scale-95 transition-all flex items-center justify-center gap-xs cursor-pointer"
+                  >
+                    Generate Roadmap
+                    <span className="material-symbols-outlined text-[18px]">psychology</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="w-full py-sm border border-outline-variant text-on-surface-variant font-label-md text-label-md rounded-xl hover:bg-surface-container-low font-bold transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="py-xl flex flex-col items-center text-center">
+                <div className="w-16 h-16 relative mb-lg">
+                  {/* Glowing AI Spinner */}
+                  <div className="absolute inset-0 rounded-full border-4 border-primary-container/20"></div>
+                  <div className="absolute inset-0 rounded-full border-4 border-t-primary animate-spin"></div>
+                  <span className="material-symbols-outlined text-[32px] text-primary absolute left-1/2 top-1/2 -translate-y-1/2 -translate-y-1/2 animate-pulse">
+                    psychology
+                  </span>
+                </div>
+                <h4 className="font-title-md text-title-md font-bold text-on-surface mb-xs">
+                  Generating Study Plan
+                </h4>
+                <p className="text-primary font-label-md font-semibold animate-pulse">
+                  {steps[loadingStep]}
+                </p>
+                <p className="text-on-surface-variant font-body-md mt-sm max-w-[280px]">
+                  Analyzing topic parameters to build learning modules and daily targets...
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

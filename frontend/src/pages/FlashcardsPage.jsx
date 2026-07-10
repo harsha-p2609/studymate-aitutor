@@ -5,12 +5,13 @@
 // ============================================================
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast";
 
 const FlashcardsPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [decks, setDecks] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -58,6 +59,14 @@ const FlashcardsPage = () => {
 
   useEffect(() => {
     fetchDecks();
+
+    if (location.state?.generateTopic) {
+      const topicToGen = location.state.generateTopic;
+      // Clear navigation state immediately to prevent re-triggering on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+      generateDeck(topicToGen);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Filter decks based on search query
@@ -86,18 +95,18 @@ const FlashcardsPage = () => {
     }
   };
 
-  // Handle deck generation
-  const handleGenerateDeck = async (e) => {
-    e.preventDefault();
-    if (!topic || topic.trim() === "") {
+  // Helper for generating deck
+  const generateDeck = async (topicToGenerate) => {
+    if (!topicToGenerate || topicToGenerate.trim() === "") {
       toast.error("Please enter a topic.");
       return;
     }
 
     try {
+      setIsModalOpen(true);
       setIsGenerating(true);
       setLoadingStep(0);
-      const res = await api.post("/flashcards/generate", { topic });
+      const res = await api.post("/flashcards/generate", { topic: topicToGenerate });
       if (res.data.success) {
         toast.success("Deck generated successfully!");
         setDecks((prev) => [res.data.data, ...prev]);
@@ -109,9 +118,16 @@ const FlashcardsPage = () => {
     } catch (err) {
       console.error("Error generating deck:", err);
       toast.error("Failed to generate AI flashcards. Please try again.");
+      setIsModalOpen(false);
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // Handle deck generation
+  const handleGenerateDeck = async (e) => {
+    e.preventDefault();
+    generateDeck(topic);
   };
 
   // Helper: format time ago

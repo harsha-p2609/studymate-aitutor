@@ -5,6 +5,11 @@
 
 const mongoose = require("mongoose");
 
+const ResourceSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  url: { type: String, required: true },
+});
+
 const TimelineItemSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -35,6 +40,8 @@ const TimelineItemSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  resources: [ResourceSchema],
+  videoLinks: [ResourceSchema],
 });
 
 const DailyGoalSchema = new mongoose.Schema({

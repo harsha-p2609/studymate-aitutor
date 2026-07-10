@@ -62,6 +62,14 @@ exports.createSession = async (req, res, next) => {
   try {
     const { topic } = req.body;
 
+    // Dynamically update user's StudyPlan/Roadmap to match the new session topic
+    try {
+      const { updateStudyPlanForTopic } = require("./studyPlanController");
+      await updateStudyPlanForTopic(req.user.id, topic || "New Study Session");
+    } catch (err) {
+      console.error("Failed to dynamically update study plan:", err);
+    }
+
     const newSession = await ChatSession.create({
       userId: req.user.id,
       topic: topic || "New Study Session",
@@ -141,7 +149,6 @@ exports.sendMessage = async (req, res, next) => {
         fileType: attachment.fileType
       } : undefined
     });
-
     // Generate response (Real Groq API, Gemini API, or fallback Mock)
     let aiText = "";
     const groqKey = process.env.GROQ_API_KEY;
@@ -149,6 +156,23 @@ exports.sendMessage = async (req, res, next) => {
 
     const isGroqConfigured = groqKey && groqKey !== "your_groq_api_key_here";
     const isGeminiConfigured = geminiKey && geminiKey !== "your_gemini_api_key_here" && !geminiKey.startsWith("AQ.");
+
+    const systemContext = `You are StudyMate AI, a friendly, encouraging, and highly intelligent AI study tutor.
+
+Your behavior must adapt dynamically depending on the user's input type:
+1. Casual Chat / Greetings / Personal Suggestions:
+   - If the user types casual messages (e.g. greetings like 'hi', 'hello', or small talk, or asks for personal life/study tips or suggestions):
+   - Reply warmly, politely, and casually. Share encouraging thoughts or give personal study suggestions.
+   - Do NOT offer quizzes, flashcards, or study roadmaps. Keep the talk purely social and supportive.
+
+2. Academic / Study Topics:
+   - If the user asks about an academic topic, study question, or concept (e.g., 'What is recursion?', 'Explain photosynthesis', 'Machine learning'):
+   - Explain the concept briefly, clearly, and engagingly.
+   - Do NOT provide roadmaps.
+   - Provide 2-3 high-quality learning resources (as clickable Markdown hyperlinks, e.g. [Resource Name](URL)) under a heading 'Resources (If you want to learn more):'.
+   - Finally, explicitly ask the user what they want to do next: whether they want to learn more details, take a quiz on this topic, or generate a deck of flashcards.
+
+Keep your tone warm, encouraging, and helpful. Use clean Markdown formatting.`;
 
     if (isGroqConfigured) {
       try {
@@ -165,7 +189,7 @@ exports.sendMessage = async (req, res, next) => {
               messages: [
                 {
                   role: "system",
-                  content: "You are StudyMate AI, a friendly, encouraging, and highly intelligent AI study tutor. Respond warmly and naturally to casual conversations or greetings (like hi or hello). When asked about a study topic or question, explain the concept briefly and clearly. Do NOT provide roadmaps. At the end of your explanation, list 2-3 high-quality learning resources (as clickable Markdown hyperlinks, e.g. [Resource Name](URL)) under a heading 'Resources (If you want to learn more):' for further study. Use clean Markdown."
+                  content: systemContext
                 },
                 ...session.messages.slice(-6).map(msg => {
                   let contentText = msg.text;
@@ -200,7 +224,7 @@ exports.sendMessage = async (req, res, next) => {
     } else if (isGeminiConfigured) {
       try {
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
           {
             method: "POST",
             headers: {
@@ -210,11 +234,11 @@ exports.sendMessage = async (req, res, next) => {
               contents: [
                 {
                   role: "user",
-                  parts: [{ text: "SYSTEM CONTEXT: You are StudyMate AI, a friendly, encouraging, and highly intelligent AI study tutor. Respond warmly and naturally to casual conversations or greetings (like hi or hello). When asked about a study topic or question, explain the concept briefly and clearly. Do NOT provide roadmaps. At the end of your explanation, list 2-3 high-quality learning resources (as clickable Markdown hyperlinks, e.g. [Resource Name](URL)) under a heading 'Resources (If you want to learn more):' for further study. Use clean Markdown. Please reply as StudyMate AI." }]
+                  parts: [{ text: `SYSTEM CONTEXT: ${systemContext} Please reply as StudyMate AI.` }]
                 },
                 {
                   role: "model",
-                  parts: [{ text: "Understood. I will act as StudyMate AI, your dedicated study tutor, helping you learn and master your curriculum with concise, structured guidance. Let's begin!" }]
+                  parts: [{ text: "Understood. I will act as StudyMate AI, your dedicated study tutor, helping you learn and master your curriculum with concise, structured guidance, adapting politely between casual/personal interactions and academic study queries. Let's begin!" }]
                 },
                 ...session.messages.slice(-6).map(msg => {
                   let contentText = msg.text;
@@ -248,23 +272,31 @@ exports.sendMessage = async (req, res, next) => {
       }
     }
 
-    // Fallback Mock responder (if Gemini not configured or failed)
-    if (!aiText) {
-      const cleanText = text.toLowerCase();
-      if (cleanText.includes("observer effect") || cleanText.includes("observe")) {
-        aiText += "The observer effect in quantum mechanics states that the act of measurement alters the system. In the quantum realm, particles like electrons behave as waves of probability until observed. Bouncing a photon off an electron transfers energy and collapses its wave function from a spread of probabilities into a single definite state! Do you want to discuss the Double-Slit experiment next?";
+    // Fallback Mock responder (if Gemini/Groq not configured or failed)
+    if (!aiText || aiText.startsWith("[Tutor offline mode")) {
+      const prefix = aiText.startsWith("[Tutor offline mode") ? aiText : "";
+      const cleanText = text.toLowerCase().trim();
+      const isCasual = /^(hi|hello|hey|greetings|good morning|good afternoon|good evening|how are you|how's it going|what's up|thanks|thank you|bye|goodbye)/i.test(cleanText);
+      const isPersonalTips = cleanText.includes("overwhelmed") || cleanText.includes("anxious") || cleanText.includes("study tips") || cleanText.includes("advice") || cleanText.includes("help") || cleanText.includes("suggest");
+      
+      if (isCasual) {
+        aiText = prefix + "Hello there! I'm your StudyMate AI Tutor. I'm here to chat, support your learning journey, and share thoughts. What is on your mind today?";
+      } else if (isPersonalTips) {
+        aiText = prefix + "I completely understand that studying can feel overwhelming at times! My advice is to break your tasks down into tiny, manageable steps, use the Pomodoro timer on your study plan page to study in short 25-minute bursts, and take frequent, healthy breaks. Remember to get enough sleep, drink water, and keep a positive mindset. You've got this! How are you feeling about your subjects right now?";
+      } else if (cleanText.includes("observer effect") || cleanText.includes("observe")) {
+        aiText = prefix + "The observer effect in quantum mechanics states that the act of measurement alters the system. In the quantum realm, particles like electrons behave as waves of probability until observed. Bouncing a photon off an electron transfers energy and collapses its wave function from a spread of probabilities into a single definite state!\n\nResources (If you want to learn more):\n- [Quantum Observer Effect Guide](https://en.wikipedia.org/wiki/Observer_effect_(physics))\n\nWould you like to learn more details, take a quiz on this topic, or generate a deck of study flashcards?";
       } else if (cleanText.includes("schrödinger") || cleanText.includes("schrodinger")) {
-        aiText += "The Schrödinger Equation (Hψ = Eψ) calculates the wave function ψ of a quantum system, telling us the probability of finding a particle at a given point in space and time. It is the quantum equivalent of Newton's second law of motion! Would you like to look at the differences between time-dependent and time-independent forms?";
+        aiText = prefix + "The Schrödinger Equation (Hψ = Eψ) calculates the wave function ψ of a quantum system, telling us the probability of finding a particle at a given point in space and time. It is the quantum equivalent of Newton's second law of motion!\n\nResources (If you want to learn more):\n- [Schrödinger Equation Details](https://en.wikipedia.org/wiki/Schr%C3%B6dinger_equation)\n\nWould you like to learn more details, take a quiz on this topic, or generate a deck of study flashcards?";
       } else if (cleanText.includes("binary search tree") || cleanText.includes("bst") || cleanText.includes("tree")) {
-        aiText += "A Binary Search Tree (BST) stores elements hierarchically. For any node, all keys in its left subtree are smaller, and all in its right subtree are larger. In a skewed tree, searching degrades to O(N) because it acts like a linked list. In a balanced tree, searching is O(log N) since each comparison discards half the nodes! Would you like to review how self-balancing trees like AVL or Red-Black trees prevent skewing?";
+        aiText = prefix + "A Binary Search Tree (BST) stores elements hierarchically. For any node, all keys in its left subtree are smaller, and all in its right subtree are larger. In a skewed tree, searching degrades to O(N) because it acts like a linked list. In a balanced tree, searching is O(log N) since each comparison discards half the nodes!\n\nResources (If you want to learn more):\n- [Binary Search Trees (BST) Introduction](https://www.geeksforgeeks.org/binary-search-tree-data-structure/)\n\nWould you like to learn more details, take a quiz on this topic, or generate a deck of study flashcards?";
       } else if (cleanText.includes("quiz") || cleanText.includes("generate quiz")) {
-        aiText += "Sure! I can generate a custom quiz for you. You can check the Quizzes tab in your navigation drawer to take the Chapter 4 BST Assessment quiz immediately, or let me know what topic you'd like to practice here!";
+        aiText = prefix + "Sure! I can generate a custom quiz for you. Click the 'Generate Quiz' chip below to get a custom assessment!";
       } else if (cleanText.includes("flashcard") || cleanText.includes("flashcards")) {
-        aiText += "I can extract flashcards from our conversation! Here is a key concept card: \n\n**Front**: Time Complexity of Skewed BST Search\n**Back**: O(N) - Linear Time (since you must check every node in a single line)\n\nWould you like me to make more cards for your other study areas?";
+        aiText = prefix + "I can extract flashcards from our conversation! Click the 'Create Flashcards' chip below to generate a new custom deck automatically!";
       } else if (cleanText.includes("summarize") || cleanText.includes("summary")) {
-        aiText += "I can summarize topics for you! Here is a summary of **Advanced React State Management**:\n- **Context API**: Great for low-frequency global updates (themes, authentication).\n- **Redux Toolkit**: Ideal for high-frequency, complex state slices with structured reducers.\n- **Performance**: Prevent unnecessary re-renders using `useMemo`, `useCallback`, and slicing state properly.";
+        aiText = prefix + "I can summarize topics for you! Here is a summary of **Advanced React State Management**:\n- **Context API**: Great for low-frequency global updates (themes, authentication).\n- **Redux Toolkit**: Ideal for high-frequency slices with structured reducers.\n- **Performance**: Prevent unnecessary re-renders using `useMemo` and `useCallback`.\n\nWould you like to learn more details, take a quiz on this topic, or generate a deck of study flashcards?";
       } else {
-        aiText += `That is an interesting topic! As your StudyMate AI Tutor, I've analyzed our discussion on "${session.topic}". Let's dive deeper. What specific sub-topics, code snippets, or formulas would you like to review?`;
+        aiText = prefix + `I've analyzed our discussion on "${session.topic}". It's a fascinating subject! Let's explore. What specific concepts or questions do you have? Also, would you like to take a quiz or generate a deck of flashcards for it?`;
       }
     }
 

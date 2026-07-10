@@ -10,6 +10,8 @@ const {
   getStudyPlan,
   addGoal,
   updateGoalStatus,
+  regenerateStudyPlan,
+  updateModuleStatus,
 } = require("../controllers/studyPlanController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -18,6 +20,8 @@ const { protect } = require("../middleware/authMiddleware");
 router.use(protect);
 
 router.get("/", getStudyPlan);
+router.post("/regenerate", regenerateStudyPlan);
+router.put("/timeline/status", updateModuleStatus);
 router.post("/goals", addGoal);
 router.put("/goals", updateGoalStatus);
 

@@ -317,8 +317,8 @@ Return ONLY a valid JSON array matching this format (no markdown blocks, no back
     // Create the new Flashcard Deck
     const newDeck = await FlashcardDeck.create({
       userId: req.user.id,
-      title: topic,
-      description: `AI-generated review deck covering key concepts in "${topic}".`,
+      title: topic.length > 80 ? topic.substring(0, 77) + "..." : topic,
+      description: `AI-generated review deck covering key concepts in "${topic.length > 100 ? topic.substring(0, 97) + "..." : topic}".`,
       icon,
       cards: parsedCards.map((c) => ({
         question: c.question,

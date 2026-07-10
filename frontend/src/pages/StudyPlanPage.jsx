@@ -126,6 +126,22 @@ const StudyPlanPage = () => {
     }
   };
 
+  const handleUpdateModuleStatus = async (moduleId, newStatus) => {
+    try {
+      const res = await api.put("/study-plan/timeline/status", {
+        moduleId,
+        status: newStatus,
+      });
+      if (res.data.success) {
+        setStudyPlan(res.data.data);
+        toast.success(`Module marked as ${newStatus}!`);
+      }
+    } catch (err) {
+      console.error("Error updating module status:", err);
+      toast.error("Failed to update module status");
+    }
+  };
+
   const changeQuote = () => {
     setQuoteIndex((prev) => (prev + 1) % quotesList.length);
   };
@@ -256,35 +272,93 @@ const StudyPlanPage = () => {
                           </h5>
                           <p className="text-on-surface-variant font-body-md mt-xs">
                             {isCompleted
-                              ? `Completed on ${module.completedDate} • ${module.lessonsCount} modules`
+                              ? `Completed on ${module.completedDate}`
                               : isCurrent
-                              ? `Active study module • ${module.progressPercent}% progress`
-                              : `Locked until previous modules complete • Est. ${module.lessonsCount * 3} hours`}
+                              ? `Active study module`
+                              : `Upcoming Focus`}
                           </p>
                         </div>
 
                         {isCurrent && (
-                          <button className="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md hover:bg-primary/95 transition-colors shadow-sm font-semibold active:scale-95 shrink-0">
-                            Resume Study
+                          <button
+                            onClick={() => handleUpdateModuleStatus(module._id, "completed")}
+                            className="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md hover:bg-primary/95 transition-colors shadow-sm font-semibold active:scale-95 shrink-0"
+                          >
+                            Mark as Completed
+                          </button>
+                        )}
+
+                        {isCompleted && (
+                          <button
+                            onClick={() => handleUpdateModuleStatus(module._id, "current")}
+                            className="border border-outline-variant text-on-surface-variant px-md py-sm rounded-lg font-label-md hover:bg-surface-container-low transition-colors shadow-sm font-semibold active:scale-95 shrink-0"
+                          >
+                            Mark as Incomplete
+                          </button>
+                        )}
+
+                        {!isCurrent && !isCompleted && (
+                          <button
+                            onClick={() => handleUpdateModuleStatus(module._id, "current")}
+                            className="border border-primary text-primary px-md py-sm rounded-lg font-label-md hover:bg-primary-container/10 transition-colors shadow-sm font-semibold active:scale-95 shrink-0"
+                          >
+                            Start Studying
                           </button>
                         )}
                       </div>
 
-                      {/* Content breakdown inside modules */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-sm pt-sm border-t border-outline-variant/55">
-                        <div className="flex items-center gap-xs text-on-surface-variant">
-                          <span className="material-symbols-outlined text-[18px]">play_circle</span>
-                          <span className="text-label-sm font-medium">{module.lessonsCount} Video Lessons</span>
+                      {/* Resources and Video Links */}
+                      {((module.resources && module.resources.length > 0) || (module.videoLinks && module.videoLinks.length > 0)) && (
+                        <div className="pt-sm border-t border-outline-variant/40 mt-sm flex flex-col md:flex-row md:justify-between gap-md">
+                          {/* Resources Section */}
+                          {module.resources && module.resources.length > 0 && (
+                            <div className="flex-grow">
+                              <p className="font-label-sm text-outline uppercase tracking-wider font-bold mb-xs flex items-center gap-xs">
+                                <span className="material-symbols-outlined text-[16px] text-primary">menu_book</span>
+                                Learning Resources
+                              </p>
+                              <div className="flex flex-wrap gap-xs">
+                                {module.resources.map((res, rIdx) => (
+                                  <a
+                                    key={rIdx}
+                                    href={res.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-sm py-1 bg-surface-container-low border border-outline-variant hover:border-primary text-primary rounded-lg text-[12px] font-semibold flex items-center gap-xs transition-all hover:-translate-y-0.5"
+                                  >
+                                    {res.name}
+                                    <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Videos Section */}
+                          {module.videoLinks && module.videoLinks.length > 0 && (
+                            <div className="flex-grow">
+                              <p className="font-label-sm text-outline uppercase tracking-wider font-bold mb-xs flex items-center gap-xs">
+                                <span className="material-symbols-outlined text-[16px] text-error">play_circle</span>
+                                Video Explanations
+                              </p>
+                              <div className="flex flex-wrap gap-xs">
+                                {module.videoLinks.map((vid, vIdx) => (
+                                  <a
+                                    key={vIdx}
+                                    href={vid.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-sm py-1 bg-error-container/10 border border-error/20 hover:border-error text-error rounded-lg text-[12px] font-semibold flex items-center gap-xs transition-all hover:-translate-y-0.5"
+                                  >
+                                    {vid.name}
+                                    <span className="material-symbols-outlined text-[12px]">play_arrow</span>
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center gap-xs text-on-surface-variant">
-                          <span className="material-symbols-outlined text-[18px]">quiz</span>
-                          <span className="text-label-sm font-medium">{module.examsCount} Mock Exam</span>
-                        </div>
-                        <div className="flex items-center gap-xs text-on-surface-variant">
-                          <span className="material-symbols-outlined text-[18px]">terminal</span>
-                          <span className="text-label-sm font-medium">{module.challengesCount} Code Challenges</span>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 );

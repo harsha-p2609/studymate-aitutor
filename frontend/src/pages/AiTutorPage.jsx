@@ -5,12 +5,13 @@
 // ============================================================
 
 import { useState, useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast";
 
 const AiTutorPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const messagesEndRef = useRef(null);
 
   const [sessions, setSessions] = useState([]);
@@ -52,8 +53,8 @@ const AiTutorPage = () => {
     const handleInitialPrompt = async () => {
       const initialPrompt = location.state?.initialPrompt;
       if (initialPrompt && sessions.length > 0) {
-        // Clear history state to prevent loop
-        window.history.replaceState({}, document.title);
+        // Clear navigation state immediately to prevent loop
+        navigate(location.pathname, { replace: true, state: {} });
         
         toast.loading("Starting study session...", { id: "init-prompt" });
         try {
@@ -86,7 +87,7 @@ const AiTutorPage = () => {
     if (!loading && sessions.length > 0) {
       handleInitialPrompt();
     }
-  }, [loading, sessions]);
+  }, [loading, sessions, navigate, location.pathname, location.state]);
 
   // Scroll to bottom of chat
   useEffect(() => {
@@ -247,6 +248,14 @@ const AiTutorPage = () => {
       
       generateQuizForTopic(quizTopic);
       handleSendMessage(`I would like to take a quiz about: "${quizTopic}".`);
+      return;
+    }
+
+    if (action === "flashcard") {
+      const userMessages = activeSession.messages.filter(m => m.sender === "user" && !m.text.toLowerCase().includes("generate quiz") && m.text.toLowerCase() !== "quiz");
+      const flashcardTopic = userMessages.length > 0 ? userMessages[userMessages.length - 1].text : activeSession.topic;
+      
+      navigate("/flashcards", { state: { generateTopic: flashcardTopic } });
       return;
     }
 
@@ -442,7 +451,7 @@ const AiTutorPage = () => {
 
                   {/* Bubble */}
                   <div
-                    className={`flex-1 p-md rounded-2xl ${
+                    className={`p-md rounded-2xl max-w-[85%] sm:max-w-[75%] ${
                       isAi
                         ? "bg-white border border-outline-variant shadow-sm rounded-tl-none text-on-surface"
                         : "bg-primary text-on-primary shadow-sm rounded-tr-none"
@@ -631,9 +640,6 @@ const AiTutorPage = () => {
                 placeholder={activeSession ? "Ask your study partner anything..." : "Start a new conversation session first..."}
                 rows={1}
               />
-              <button disabled={!activeSession} className="p-sm text-outline hover:text-primary transition-colors disabled:opacity-50">
-                <span className="material-symbols-outlined">mic</span>
-              </button>
               <button
                 onClick={() => handleSendMessage()}
                 disabled={!activeSession || sending}
