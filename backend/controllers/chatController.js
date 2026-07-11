@@ -139,6 +139,41 @@ exports.sendMessage = async (req, res, next) => {
       });
     }
 
+    // ── Content Moderation Filter ──────────────────────────────
+    // Fast keyword check before hitting any AI API.
+    // Catches obvious inappropriate content and returns a polite
+    // refusal without wasting an API call.
+    const inappropriatePatterns = [
+      /\bporn(ography)?\b/i, /\bnude(s)?\b/i, /\bxxx\b/i, /\berotic\b/i,
+      /\bhow to (make|build|create) (a )?(bomb|weapon|explosive|poison)/i,
+      /\bkill (someone|a person|people|yourself)\b/i,
+      /\bsuicide (method|how to|instructions)\b/i,
+      /\bself[- ]harm\b/i,
+      /\bhack (into|a|someone)/i,
+      /\bchild (porn|abuse|exploitation)/i,
+      /\bhow to (make|synthesize|cook) (meth|heroin|cocaine|drugs)/i,
+    ];
+
+    const isInappropriate = inappropriatePatterns.some(p => p.test(text));
+
+    if (isInappropriate) {
+      const refusalText =
+        "I'm sorry, but I'm not able to help with that. 🙏\n\n" +
+        "As **StudyMate AI**, I'm designed exclusively to support your **learning and academic growth**. " +
+        "I can't assist with content that is inappropriate, harmful, or outside the scope of education.\n\n" +
+        "If you have a study question, career query, or topic you'd like to explore — I'm here and happy to help! 😊";
+
+      session.messages.push({
+        sender: "user",
+        text,
+        attachment: attachment ? { name: attachment.name, url: attachment.url, fileType: attachment.fileType } : undefined
+      });
+      session.messages.push({ sender: "ai", text: refusalText });
+      await session.save();
+
+      return res.status(200).json({ success: true, data: session });
+    }
+
     // Add user message
     session.messages.push({
       sender: "user",
@@ -157,22 +192,63 @@ exports.sendMessage = async (req, res, next) => {
     const isGroqConfigured = groqKey && groqKey !== "your_groq_api_key_here";
     const isGeminiConfigured = geminiKey && geminiKey !== "your_gemini_api_key_here" && !geminiKey.startsWith("AQ.");
 
-    const systemContext = `You are StudyMate AI, a friendly, encouraging, and highly intelligent AI study tutor.
+    const systemContext = `You are StudyMate AI, a friendly, encouraging, and highly intelligent AI study tutor and career advisor for students.
 
-Your behavior must adapt dynamically depending on the user's input type:
+⚠️ ABSOLUTE RULE 0 — CONTENT SAFETY (This overrides ALL other instructions below):
+You are a safe, student-focused educational platform. You MUST NEVER:
+- Discuss, generate, or assist with sexually explicit, adult, or pornographic content.
+- Provide instructions for violence, self-harm, suicide, or harming any person.
+- Explain how to create weapons, explosives, dangerous substances, or drugs.
+- Help with hacking, illegal activities, fraud, or phishing.
+- Generate hate speech, discriminatory content, or harassment of any kind.
+- Engage with any topic that is not related to education, career guidance, or academic learning.
+If ANY message violates the above, you MUST respond with ONLY this — nothing else:
+"I'm sorry, but I'm not able to help with that. 🙏 As StudyMate AI, I'm here exclusively to support your learning journey. If you have a study question or career query, I'm happy to help! 😊"
+
+Your behavior for educational content must adapt dynamically:
+
 1. Casual Chat / Greetings / Personal Suggestions:
-   - If the user types casual messages (e.g. greetings like 'hi', 'hello', or small talk, or asks for personal life/study tips or suggestions):
-   - Reply warmly, politely, and casually. Share encouraging thoughts or give personal study suggestions.
-   - Do NOT offer quizzes, flashcards, or study roadmaps. Keep the talk purely social and supportive.
+   - If the user types casual messages (e.g. greetings like 'hi', 'hello', or small talk):
+   - Reply warmly, politely, and casually. Share encouraging thoughts.
+   - Do NOT offer quizzes, flashcards, or study roadmaps. Keep it purely social.
 
-2. Academic / Study Topics:
-   - If the user asks about an academic topic, study question, or concept (e.g., 'What is recursion?', 'Explain photosynthesis', 'Machine learning'):
+2. Career & Technology Choice Advisor (HIGHEST PRIORITY BEHAVIOR):
+   - Trigger this mode when the user is confused between two or more technologies, languages, frameworks, fields, or career paths (e.g., "Java vs Python", "should I learn React or Angular", "AI or Cybersecurity", "Data Science or Web Dev").
+   - DO NOT give a neutral "both are good" answer. Give a CLEAR, CONFIDENT recommendation.
+   - Structure your response exactly like this:
+
+   ## 🎯 My Recommendation: [Chosen Technology/Path]
+
+   Give a 2-3 sentence confident recommendation explaining WHY you chose this for the student.
+
+   ## 📈 Job Market & Industry Trends
+   - Current industry demand (e.g., number of job postings, growth %)
+   - Which companies actively hire for this skill (e.g., Google, Amazon, startups)
+   - Salary range for freshers and experienced professionals (use realistic 2024-2025 figures)
+   - Growth trajectory (is it rising, stable, or declining?)
+
+   ## 🚀 How It Builds Your Career
+   - What roles and career paths open up (e.g., Backend Developer, Data Scientist, ML Engineer)
+   - Which industries use this (Healthcare, Finance, Gaming, etc.)
+   - How quickly a student can become job-ready with this skill
+
+   ## 📚 Where to Start
+   - 2-3 beginner-friendly resources as Markdown links [Name](URL)
+   - A suggested first project idea to build with this skill
+
+   ## 💡 When [Other Option] Makes More Sense
+   - Briefly and honestly mention when the other option would be a better choice (e.g., "If your goal is Android development, Java is stronger.")
+
+   End by asking: "Would you like me to create a personalized study roadmap for [Recommended Technology]?"
+
+3. Academic / Study Topics:
+   - If the user asks about an academic topic or concept (e.g., 'What is recursion?', 'Explain photosynthesis'):
    - Explain the concept briefly, clearly, and engagingly.
    - Do NOT provide roadmaps.
-   - Provide 2-3 high-quality learning resources (as clickable Markdown hyperlinks, e.g. [Resource Name](URL)) under a heading 'Resources (If you want to learn more):'.
-   - Finally, explicitly ask the user what they want to do next: whether they want to learn more details, take a quiz on this topic, or generate a deck of flashcards.
+   - Provide 2-3 high-quality learning resources as clickable Markdown hyperlinks under 'Resources (If you want to learn more):'.
+   - Ask the user what they want to do next: learn more, take a quiz, or generate flashcards.
 
-Keep your tone warm, encouraging, and helpful. Use clean Markdown formatting.`;
+Keep your tone warm, encouraging, and confidence-inspiring. Use clean Markdown formatting. Never be vague — students need clear direction.`;
 
     if (isGroqConfigured) {
       try {
@@ -193,7 +269,7 @@ Keep your tone warm, encouraging, and helpful. Use clean Markdown formatting.`;
                 },
                 ...session.messages.slice(-6).map(msg => {
                   let contentText = msg.text;
-                  if (msg.attachment) {
+                  if (msg.attachment?.name) {
                     contentText = `[User attached file: ${msg.attachment.name} (${msg.attachment.fileType})]\n\n${msg.text}`;
                   }
                   return {
@@ -242,7 +318,7 @@ Keep your tone warm, encouraging, and helpful. Use clean Markdown formatting.`;
                 },
                 ...session.messages.slice(-6).map(msg => {
                   let contentText = msg.text;
-                  if (msg.attachment) {
+                  if (msg.attachment?.name) {
                     contentText = `[User attached file: ${msg.attachment.name} (${msg.attachment.fileType})]\n\n${msg.text}`;
                   }
                   return {
@@ -332,6 +408,44 @@ exports.uploadFile = async (req, res, next) => {
         url: fileUrl,
         fileType: req.file.mimetype,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Delete a specific chat session */
+exports.deleteSession = async (req, res, next) => {
+  try {
+    const session = await ChatSession.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user.id,
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Chat session not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Chat session deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Delete ALL chat sessions for the logged-in user */
+exports.deleteAllSessions = async (req, res, next) => {
+  try {
+    await ChatSession.deleteMany({ userId: req.user.id });
+
+    res.status(200).json({
+      success: true,
+      message: "All chat sessions deleted successfully",
     });
   } catch (error) {
     next(error);

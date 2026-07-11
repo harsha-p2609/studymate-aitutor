@@ -127,6 +127,60 @@ const AiTutorPage = () => {
     }
   };
 
+  // ── Delete Session ──────────────────────────────────────────
+  const handleDeleteSession = async (e, sessionId) => {
+    e.stopPropagation(); // Prevent choosing/selecting the session when clicking delete
+    
+    if (!window.confirm("Are you sure you want to delete this study session history?")) {
+      return;
+    }
+
+    try {
+      const res = await api.delete(`/chat/sessions/${sessionId}`);
+      if (res.data.success) {
+        toast.success("Study session deleted");
+        
+        // Remove the session from local sessions array
+        const updatedSessions = sessions.filter((s) => s._id !== sessionId);
+        setSessions(updatedSessions);
+        
+        // If the deleted session was the active one, transition to another or null
+        if (activeSession?._id === sessionId) {
+          if (updatedSessions.length > 0) {
+            // Select the first remaining session
+            loadSessionDetails(updatedSessions[0]._id);
+          } else {
+            setActiveSession(null);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting session:", err);
+      toast.error("Failed to delete session");
+    }
+  };
+
+  // ── Delete ALL Sessions ─────────────────────────────────────
+  const handleDeleteAllSessions = async () => {
+    if (sessions.length === 0) return;
+
+    if (!window.confirm(`Are you sure you want to delete all ${sessions.length} chat session(s)? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await api.delete("/chat/sessions");
+      if (res.data.success) {
+        toast.success("All chat history cleared");
+        setSessions([]);
+        setActiveSession(null);
+      }
+    } catch (err) {
+      console.error("Error clearing all sessions:", err);
+      toast.error("Failed to clear history");
+    }
+  };
+
   // ── File Selection Handlers ─────────────────────────────────
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -171,12 +225,24 @@ const AiTutorPage = () => {
     // Check if user is manually typing a quiz generation request
     const textLower = text.toLowerCase();
     if ((textLower.includes("generate quiz") || textLower === "quiz") && !textToSend) {
-      const userMessages = activeSession.messages.filter(m => m.sender === "user" && !m.text.toLowerCase().includes("generate quiz") && m.text.toLowerCase() !== "quiz");
-      const quizTopic = userMessages.length > 0 ? userMessages[userMessages.length - 1].text : activeSession.topic;
-      
+      const quizTopic = extractConversationTopic();
       generateQuizForTopic(quizTopic);
       setInputText("");
       handleSendMessage(`I would like to take a quiz about: "${quizTopic}".`);
+      return;
+    }
+
+    // Check if user is manually typing a flashcard generation request
+    const isFlashcardRequest =
+      !textToSend &&
+      (textLower.includes("flash card") ||
+        textLower.includes("flashcard") ||
+        textLower.includes("flash cards"));
+    if (isFlashcardRequest) {
+      const flashcardTopic = extractConversationTopic();
+      setInputText("");
+      toast.success(`📚 Generating flashcards for: "${flashcardTopic}"`);
+      navigate("/flashcards", { state: { generateTopic: flashcardTopic } });
       return;
     }
 
@@ -240,29 +306,72 @@ const AiTutorPage = () => {
     }
   };
 
+  // ── Smart Conversation Topic Extractor ─────────────────────
+  // Scans message history backwards, skipping all action/command
+  // messages (chip clicks, quiz/flashcard/summary requests) to find
+  // the last real academic topic the user was discussing.
+  const extractConversationTopic = () => {
+    if (!activeSession) return "";
+
+    // Patterns that indicate chip actions or command messages — NOT real topics
+    const actionPatterns = [
+      /generate (a )?quiz/i,
+      /create (a )?quiz/i,
+      /take a quiz/i,
+      /quiz me/i,
+      /^quiz$/i,
+      /create (a )?(set of )?(flash\s?card)/i,
+      /generate (a )?(set of )?(flash\s?card)/i,
+      /make (a )?(set of )?(flash\s?card)/i,
+      /now generate.*flash\s?card/i,
+      /flash\s?card.*based on (this|the) topic/i,
+      /^flash\s?card/i,
+      /summarize (this|the)/i,
+      /summarize this study session/i,
+      /^summary$/i,
+      /explain the main topic/i,
+      /explain.*simple.*easy/i,
+      /i would like to take a quiz about/i,
+      /i want.*quiz/i,
+      /generate.*flash\s?card.*for me/i,
+    ];
+
+    // Walk backwards through user messages to find last real topic message
+    const userMessages = [...activeSession.messages]
+      .filter(m => m.sender === "user")
+      .reverse(); // newest first
+
+    for (const msg of userMessages) {
+      const text = msg.text.trim();
+      // Skip very short messages (single words like "quiz", "hi") and action commands
+      if (text.length < 4) continue;
+      const isAction = actionPatterns.some(pattern => pattern.test(text));
+      if (!isAction) {
+        return text; // ✅ Found a real topic message
+      }
+    }
+
+    // Fallback: use the session topic (set when the session was created)
+    return activeSession.topic || "the current topic";
+  };
+
   // ── Chip Shortcuts ──────────────────────────────────────────
   const handleChipClick = async (action) => {
     if (action === "quiz") {
-      const userMessages = activeSession.messages.filter(m => m.sender === "user" && !m.text.toLowerCase().includes("generate quiz") && m.text.toLowerCase() !== "quiz");
-      const quizTopic = userMessages.length > 0 ? userMessages[userMessages.length - 1].text : activeSession.topic;
-      
-      generateQuizForTopic(quizTopic);
-      handleSendMessage(`I would like to take a quiz about: "${quizTopic}".`);
+      const topic = extractConversationTopic();
+      generateQuizForTopic(topic);
+      handleSendMessage(`I would like to take a quiz about: "${topic}".`);
       return;
     }
 
     if (action === "flashcard") {
-      const userMessages = activeSession.messages.filter(m => m.sender === "user" && !m.text.toLowerCase().includes("generate quiz") && m.text.toLowerCase() !== "quiz");
-      const flashcardTopic = userMessages.length > 0 ? userMessages[userMessages.length - 1].text : activeSession.topic;
-      
-      navigate("/flashcards", { state: { generateTopic: flashcardTopic } });
+      const topic = extractConversationTopic();
+      navigate("/flashcards", { state: { generateTopic: topic } });
       return;
     }
 
     const promptMap = {
-      quiz: "Generate a quiz for me about our current topic.",
       explain: "Explain the main topic of our session in simple, easy-to-understand terms.",
-      flashcard: "Create a set of flashcards for the key terms in this lesson.",
       summary: "Summarize this study session in bullet points.",
     };
     handleSendMessage(promptMap[action]);
@@ -340,7 +449,7 @@ const AiTutorPage = () => {
       >
         <div className="p-sm flex justify-between items-center border-b border-outline-variant/30">
           <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider font-semibold">History</span>
-          <div className="flex gap-sm">
+          <div className="flex gap-xs items-center">
             <button
               onClick={() => setShowNewTopicModal(true)}
               className="text-primary hover:bg-primary-container/10 p-1.5 rounded-lg transition-colors flex items-center"
@@ -348,6 +457,15 @@ const AiTutorPage = () => {
             >
               <span className="material-symbols-outlined text-[20px]">add_comment</span>
             </button>
+            {sessions.length > 0 && (
+              <button
+                onClick={handleDeleteAllSessions}
+                className="text-outline/70 hover:text-error hover:bg-error/5 p-1.5 rounded-lg transition-all flex items-center"
+                title="Clear All History"
+              >
+                <span className="material-symbols-outlined text-[20px]">delete_sweep</span>
+              </button>
+            )}
             {/* Collapse button inside sidebar header for easy navigation */}
             <button
               onClick={() => setSidebarOpen(false)}
@@ -378,13 +496,22 @@ const AiTutorPage = () => {
                     : "hover:bg-surface-container-high border-l-4 border-transparent"
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-start justify-between gap-xs mb-1">
                   <span className={`font-label-md text-label-md truncate pr-xs ${isActive ? "text-primary font-bold" : "text-on-surface font-semibold"}`}>
                     {sess.topic}
                   </span>
-                  <span className="text-[10px] text-outline shrink-0">
-                    {sess.updatedAt ? new Date(sess.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
-                  </span>
+                  <div className="flex items-center gap-xs shrink-0">
+                    <span className="text-[10px] text-outline">
+                      {sess.updatedAt ? new Date(sess.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
+                    </span>
+                    <button
+                      onClick={(e) => handleDeleteSession(e, sess._id)}
+                      className="text-outline/60 hover:text-error p-0.5 rounded transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                      title="Delete Session"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">delete</span>
+                    </button>
+                  </div>
                 </div>
                 <p className="text-label-sm text-on-surface-variant line-clamp-1">
                   {lastMsg ? lastMsg.text : "No messages yet"}

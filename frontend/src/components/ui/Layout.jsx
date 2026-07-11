@@ -4,7 +4,7 @@
 // Includes Sidebar (desktop), Bottom Navigation (mobile), and Topbar
 // ============================================================
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../context/AuthContext";
 import useAuth from "../../hooks/useAuth";
@@ -15,6 +15,27 @@ const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    // Read persisted preference; default to system preference
+    const stored = localStorage.getItem("studymate_dark_mode");
+    if (stored !== null) return stored === "true";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
+
+  // Sync dark class on <html> whenever darkMode changes
+  useEffect(() => {
+    const html = document.documentElement;
+    if (darkMode) {
+      html.classList.add("dark");
+      html.classList.remove("light");
+    } else {
+      html.classList.remove("dark");
+      html.classList.add("light");
+    }
+    localStorage.setItem("studymate_dark_mode", darkMode);
+  }, [darkMode]);
+
+  const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
   const currentPath = location.pathname;
 
@@ -188,9 +209,20 @@ const Layout = ({ children }) => {
               type="text"
             />
           </div>
-          <button className="material-symbols-outlined text-on-surface-variant hover:opacity-80 transition-opacity">
-            notifications
+
+          {/* Dark / Light Mode Toggle */}
+          <button
+            onClick={toggleDarkMode}
+            id="dark-mode-toggle"
+            title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            className="w-9 h-9 flex items-center justify-center rounded-full border border-outline-variant bg-surface-container-low hover:bg-surface-container-high transition-all active:scale-90"
+          >
+            <span className="material-symbols-outlined text-[20px] text-on-surface-variant">
+              {darkMode ? "light_mode" : "dark_mode"}
+            </span>
           </button>
+
+
           <div className="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden border border-outline-variant flex items-center justify-center">
             {user?.avatar ? (
               <img className="w-full h-full object-cover" alt={user.name} src={user.avatar} />

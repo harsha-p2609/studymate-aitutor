@@ -19,120 +19,300 @@
     <meta property="og:description" content="AI-powered study tutor for personalized learning." />
     <meta property="og:type" content="website" />
 
-    <!-- Favicon placeholder -->
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-    <!-- Google Fonts and Material Icons -->
+    <!-- Google Fonts + Material Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    
-    <!-- Stitch Design Tokens Tailwind Config -->
-    <script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            "colors": {
-              "surface-container-lowest": "#ffffff",
-              "secondary-container": "#2170e4",
-              "surface-dim": "#cbdbf5",
-              "surface-container-low": "#eff4ff",
-              "secondary-fixed": "#d8e2ff",
-              "on-primary-container": "#dad7ff",
-              "surface-tint": "#4d44e3",
-              "inverse-on-surface": "#eaf1ff",
-              "tertiary-fixed": "#6bff8f",
-              "on-secondary-container": "#fefcff",
-              "tertiary": "#005523",
-              "tertiary-container": "#007030",
-              "primary": "#3525cd",
-              "on-tertiary-container": "#63f889",
-              "surface-container": "#e5eeff",
-              "on-error": "#ffffff",
-              "inverse-primary": "#c3c0ff",
-              "surface-container-high": "#dce9ff",
-              "on-error-container": "#93000a",
-              "error-container": "#ffdad6",
-              "on-secondary-fixed": "#001a42",
-              "on-primary-fixed": "#0f0069",
-              "inverse-surface": "#213145",
-              "on-surface-variant": "#464555",
-              "primary-container": "#4f46e5",
-              "surface-bright": "#f8f9ff",
-              "on-tertiary": "#ffffff",
-              "secondary": "#0058be",
-              "on-primary": "#ffffff",
-              "secondary-fixed-dim": "#adc6ff",
-              "on-tertiary-fixed": "#002109",
-              "on-secondary-fixed-variant": "#004395",
-              "primary-fixed": "#e2dfff",
-              "outline-variant": "#c7c4d8",
-              "outline": "#777587",
-              "tertiary-fixed-dim": "#4ae176",
-              "primary-fixed-dim": "#c3c0ff",
-              "error": "#ba1a1a",
-              "on-surface": "#0b1c30",
-              "on-secondary": "#ffffff",
-              "background": "#f8f9ff",
-              "on-background": "#0b1c30",
-              "surface": "#f8f9ff",
-              "surface-container-highest": "#d3e4fe",
-              "on-primary-fixed-variant": "#3323cc",
-              "surface-variant": "#d3e4fe",
-              "on-tertiary-fixed-variant": "#005321"
-            },
-            "borderRadius": {
-              "DEFAULT": "0.25rem",
-              "lg": "0.5rem",
-              "xl": "0.75rem",
-              "2xl": "20px",
-              "full": "9999px"
-            },
-            "spacing": {
-              "md": "24px",
-              "sm": "16px",
-              "xl": "80px",
-              "lg": "48px",
-              "base": "4px",
-              "gutter": "24px",
-              "xs": "8px",
-              "container-max": "1280px"
-            },
-            "fontFamily": {
-              "label-sm": ["Inter"],
-              "headline-lg": ["Inter"],
-              "body-lg": ["Inter"],
-              "title-md": ["Inter"],
-              "headline-xl": ["Inter"],
-              "body-md": ["Inter"],
-              "label-md": ["Inter"],
-              "headline-lg-mobile": ["Inter"]
-            },
-            "fontSize": {
-              "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
-              "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
-              "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
-              "title-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
-              "headline-xl": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
-              "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
-              "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
-              "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
-            }
-          },
-        },
-      }
-    </script>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         DESIGN SYSTEM — CSS Custom Properties
+         All color tokens live here. .dark{} overrides swap the
+         entire palette in one place. No class-fighting, no clutter.
+    ════════════════════════════════════════════════════════════ -->
     <style>
+
+      /* ── LIGHT MODE (default) ──────────────────────────────── */
+      :root {
+        /* Primary */
+        --c-primary:                  #3525cd;
+        --c-on-primary:               #ffffff;
+        --c-primary-container:        #4f46e5;
+        --c-on-primary-container:     #dad7ff;
+        --c-primary-fixed:            #e2dfff;
+        --c-primary-fixed-dim:        #c3c0ff;
+        --c-on-primary-fixed:         #0f0069;
+        --c-on-primary-fixed-variant: #3323cc;
+        --c-inverse-primary:          #c3c0ff;
+
+        /* Secondary */
+        --c-secondary:                      #0058be;
+        --c-on-secondary:                   #ffffff;
+        --c-secondary-container:            #2170e4;
+        --c-on-secondary-container:         #fefcff;
+        --c-secondary-fixed:                #d8e2ff;
+        --c-secondary-fixed-dim:            #adc6ff;
+        --c-on-secondary-fixed:             #001a42;
+        --c-on-secondary-fixed-variant:     #004395;
+
+        /* Tertiary */
+        --c-tertiary:                       #005523;
+        --c-on-tertiary:                    #ffffff;
+        --c-tertiary-container:             #007030;
+        --c-on-tertiary-container:          #63f889;
+        --c-tertiary-fixed:                 #6bff8f;
+        --c-tertiary-fixed-dim:             #4ae176;
+        --c-on-tertiary-fixed:              #002109;
+        --c-on-tertiary-fixed-variant:      #005321;
+
+        /* Error */
+        --c-error:                    #ba1a1a;
+        --c-on-error:                 #ffffff;
+        --c-error-container:          #ffdad6;
+        --c-on-error-container:       #93000a;
+
+        /* Surfaces */
+        --c-background:               #f8f9ff;
+        --c-on-background:            #0b1c30;
+        --c-surface:                  #f8f9ff;
+        --c-surface-bright:           #f8f9ff;
+        --c-surface-dim:              #cbdbf5;
+        --c-surface-variant:          #d3e4fe;
+        --c-surface-tint:             #4d44e3;
+        --c-on-surface:               #0b1c30;
+        --c-on-surface-variant:       #464555;
+        --c-surface-container-lowest: #ffffff;
+        --c-surface-container-low:    #eff4ff;
+        --c-surface-container:        #e5eeff;
+        --c-surface-container-high:   #dce9ff;
+        --c-surface-container-highest:#d3e4fe;
+
+        /* Misc */
+        --c-outline:                  #777587;
+        --c-outline-variant:          #c7c4d8;
+        --c-inverse-surface:          #213145;
+        --c-inverse-on-surface:       #eaf1ff;
+      }
+
+      /* ── DARK MODE ─────────────────────────────────────────── */
+      /* Flip the entire design system by overriding CSS vars on
+         the root element. Every Tailwind utility that references
+         var(--c-*) updates instantly — no class-fighting needed. */
+      .dark {
+        /* Primary — lightened indigo for dark backgrounds */
+        --c-primary:                  #a5a0ff;
+        --c-on-primary:               #1b0096;
+        --c-primary-container:        #2d22b5;
+        --c-on-primary-container:     #e2dfff;
+        --c-primary-fixed:            #e2dfff;
+        --c-primary-fixed-dim:        #c3c0ff;
+        --c-on-primary-fixed:         #0f0069;
+        --c-on-primary-fixed-variant: #3323cc;
+        --c-inverse-primary:          #3525cd;
+
+        /* Secondary */
+        --c-secondary:                      #adc6ff;
+        --c-on-secondary:                   #002d6d;
+        --c-secondary-container:            #1a5cbf;
+        --c-on-secondary-container:         #dceaff;
+        --c-secondary-fixed:                #d8e2ff;
+        --c-secondary-fixed-dim:            #adc6ff;
+        --c-on-secondary-fixed:             #001a42;
+        --c-on-secondary-fixed-variant:     #004395;
+
+        /* Tertiary */
+        --c-tertiary:                       #56d97a;
+        --c-on-tertiary:                    #00391a;
+        --c-tertiary-container:             #00521f;
+        --c-on-tertiary-container:          #71f097;
+        --c-tertiary-fixed:                 #6bff8f;
+        --c-tertiary-fixed-dim:             #4ae176;
+        --c-on-tertiary-fixed:              #002109;
+        --c-on-tertiary-fixed-variant:      #005321;
+
+        /* Error */
+        --c-error:                    #ffb4ab;
+        --c-on-error:                 #690005;
+        --c-error-container:          #7a0008;
+        --c-on-error-container:       #ffdad6;
+
+        /* Surfaces — deep navy-charcoal base, clear elevation layers */
+        --c-background:               #12131a;
+        --c-on-background:            #e3e2ec;
+        --c-surface:                  #12131a;
+        --c-surface-bright:           #383840;
+        --c-surface-dim:              #12131a;
+        --c-surface-variant:          #47464f;
+        --c-surface-tint:             #a5a0ff;
+        --c-on-surface:               #e3e2ec;
+        --c-on-surface-variant:       #c8c5d0;
+        --c-surface-container-lowest: #0d0e14;
+        --c-surface-container-low:    #1a1b23;
+        --c-surface-container:        #1e1f27;
+        --c-surface-container-high:   #292a33;
+        --c-surface-container-highest:#33343d;
+
+        /* Misc */
+        --c-outline:                  #918f9a;
+        --c-outline-variant:          #47464f;
+        --c-inverse-surface:          #e3e2ec;
+        --c-inverse-on-surface:       #2f3038;
+      }
+
+      /* Material Icons */
       .material-symbols-outlined {
         font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         display: inline-block;
         vertical-align: middle;
       }
+
+      /* ── Smooth Theme Transitions ──────────────────────────── */
+      /* Applied globally so every element fades gracefully      */
+      *, *::before, *::after {
+        transition: background-color 0.22s ease,
+                    border-color 0.22s ease,
+                    color 0.18s ease,
+                    box-shadow 0.22s ease;
+      }
+
+      /* The toggle button itself should be snappy, not laggy */
+      #dark-mode-toggle { transition: transform 0.15s ease; }
+      #dark-mode-toggle:active { transform: scale(0.85); }
+
+      /* ── Dark Mode: Tailwind Built-in Whites ────────────────────
+         bg-white and its opacity variants are NOT part of our CSS
+         variable system — Tailwind hardcodes them. Map every variant
+         to the correct dark surface elevation so cards, panels and
+         inputs look like proper dark surfaces instead of white boxes.
+      ────────────────────────────────────────────────────────────── */
+
+      /* Solid white → dark surface card */
+      .dark .bg-white {
+        background-color: var(--c-surface-container-low) !important;
+      }
+      /* Semi-transparent whites → dark equivalents */
+      .dark .bg-white\/80 { background-color: rgba(26,27,35,0.92) !important; }
+      .dark .bg-white\/60 { background-color: rgba(26,27,35,0.75) !important; }
+      .dark .bg-white\/40 { background-color: rgba(30,31,39,0.60) !important; }
+      .dark .bg-white\/20 { background-color: rgba(165,160,255,0.10) !important; }
+      .dark .bg-white\/10 { background-color: rgba(165,160,255,0.06) !important; }
+
+      /* White borders */
+      .dark .border-white\/20 { border-color: rgba(165,160,255,0.18) !important; }
+      .dark .border-white\/40 { border-color: rgba(165,160,255,0.28) !important; }
+
+      /* Tailwind gray text shades used inside cards */
+      .dark .text-gray-400 { color: #9ca3b8; }
+      .dark .text-gray-500 { color: #7b7f94; }
+      .dark .text-gray-600 { color: #6b7280; }
+      .dark .text-gray-700 { color: #c8c5d0; }
+      .dark .text-gray-800 { color: #e3e2ec; }
+      .dark .text-gray-900 { color: #f0f0f8; }
+
+      /* Scrollbar tinting */
+      .dark * {
+        scrollbar-color: var(--c-outline-variant) var(--c-surface-container);
+      }
     </style>
+
+    <!-- Tailwind Config — ALL color tokens reference CSS vars.
+         When .dark swaps the vars above, every utility updates. -->
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary":                    "var(--c-primary)",
+              "on-primary":                 "var(--c-on-primary)",
+              "primary-container":          "var(--c-primary-container)",
+              "on-primary-container":       "var(--c-on-primary-container)",
+              "primary-fixed":              "var(--c-primary-fixed)",
+              "primary-fixed-dim":          "var(--c-primary-fixed-dim)",
+              "on-primary-fixed":           "var(--c-on-primary-fixed)",
+              "on-primary-fixed-variant":   "var(--c-on-primary-fixed-variant)",
+              "inverse-primary":            "var(--c-inverse-primary)",
+
+              "secondary":                  "var(--c-secondary)",
+              "on-secondary":               "var(--c-on-secondary)",
+              "secondary-container":        "var(--c-secondary-container)",
+              "on-secondary-container":     "var(--c-on-secondary-container)",
+              "secondary-fixed":            "var(--c-secondary-fixed)",
+              "secondary-fixed-dim":        "var(--c-secondary-fixed-dim)",
+              "on-secondary-fixed":         "var(--c-on-secondary-fixed)",
+              "on-secondary-fixed-variant": "var(--c-on-secondary-fixed-variant)",
+
+              "tertiary":                   "var(--c-tertiary)",
+              "on-tertiary":                "var(--c-on-tertiary)",
+              "tertiary-container":         "var(--c-tertiary-container)",
+              "on-tertiary-container":      "var(--c-on-tertiary-container)",
+              "tertiary-fixed":             "var(--c-tertiary-fixed)",
+              "tertiary-fixed-dim":         "var(--c-tertiary-fixed-dim)",
+              "on-tertiary-fixed":          "var(--c-on-tertiary-fixed)",
+              "on-tertiary-fixed-variant":  "var(--c-on-tertiary-fixed-variant)",
+
+              "error":                      "var(--c-error)",
+              "on-error":                   "var(--c-on-error)",
+              "error-container":            "var(--c-error-container)",
+              "on-error-container":         "var(--c-on-error-container)",
+
+              "background":                 "var(--c-background)",
+              "on-background":              "var(--c-on-background)",
+              "surface":                    "var(--c-surface)",
+              "surface-bright":             "var(--c-surface-bright)",
+              "surface-dim":                "var(--c-surface-dim)",
+              "surface-variant":            "var(--c-surface-variant)",
+              "surface-tint":               "var(--c-surface-tint)",
+              "on-surface":                 "var(--c-on-surface)",
+              "on-surface-variant":         "var(--c-on-surface-variant)",
+              "surface-container-lowest":   "var(--c-surface-container-lowest)",
+              "surface-container-low":      "var(--c-surface-container-low)",
+              "surface-container":          "var(--c-surface-container)",
+              "surface-container-high":     "var(--c-surface-container-high)",
+              "surface-container-highest":  "var(--c-surface-container-highest)",
+
+              "outline":                    "var(--c-outline)",
+              "outline-variant":            "var(--c-outline-variant)",
+              "inverse-surface":            "var(--c-inverse-surface)",
+              "inverse-on-surface":         "var(--c-inverse-on-surface)",
+            },
+            borderRadius: {
+              DEFAULT: "0.25rem",
+              lg:  "0.5rem",
+              xl:  "0.75rem",
+              "2xl": "20px",
+              full: "9999px"
+            },
+            spacing: {
+              md: "24px", sm: "16px", xl: "80px", lg: "48px",
+              base: "4px", gutter: "24px", xs: "8px",
+              "container-max": "1280px"
+            },
+            fontFamily: {
+              "label-sm": ["Inter"], "headline-lg": ["Inter"], "body-lg": ["Inter"],
+              "title-md": ["Inter"], "headline-xl": ["Inter"], "body-md": ["Inter"],
+              "label-md": ["Inter"], "headline-lg-mobile": ["Inter"], "title-medium": ["Inter"]
+            },
+            fontSize: {
+              "label-sm":          ["12px", { lineHeight: "16px",  letterSpacing: "0.05em",  fontWeight: "600" }],
+              "headline-lg":       ["32px", { lineHeight: "40px",  letterSpacing: "-0.02em", fontWeight: "600" }],
+              "body-lg":           ["18px", { lineHeight: "28px",  fontWeight: "400" }],
+              "title-md":          ["20px", { lineHeight: "28px",  fontWeight: "600" }],
+              "title-medium":      ["20px", { lineHeight: "28px",  fontWeight: "600" }],
+              "headline-xl":       ["40px", { lineHeight: "48px",  letterSpacing: "-0.02em", fontWeight: "700" }],
+              "body-md":           ["16px", { lineHeight: "24px",  fontWeight: "400" }],
+              "label-md":          ["14px", { lineHeight: "20px",  fontWeight: "500" }],
+              "headline-lg-mobile":["24px", { lineHeight: "32px",  fontWeight: "600" }]
+            }
+          }
+        }
+      }
+    </script>
   </head>
   <body class="bg-background text-on-surface font-body-md antialiased">
     <div id="root"></div>

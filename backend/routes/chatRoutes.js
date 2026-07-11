@@ -12,6 +12,8 @@ const {
   getSessionById,
   sendMessage,
   uploadFile,
+  deleteSession,
+  deleteAllSessions,
 } = require("../controllers/chatController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -22,8 +24,10 @@ router.use(protect);
 
 router.get("/sessions", getSessions);
 router.post("/sessions", createSession);
+router.delete("/sessions", deleteAllSessions);
 router.get("/sessions/:id", getSessionById);
 router.post("/sessions/:id/message", sendMessage);
+router.delete("/sessions/:id", deleteSession);
 router.post("/upload", upload.single("file"), uploadFile);
 
 module.exports = router;
