@@ -12,6 +12,8 @@ const {
   updateGoalStatus,
   regenerateStudyPlan,
   updateModuleStatus,
+  activateStudyPlan,
+  deleteStudyPlan,
 } = require("../controllers/studyPlanController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -24,5 +26,7 @@ router.post("/regenerate", regenerateStudyPlan);
 router.put("/timeline/status", updateModuleStatus);
 router.post("/goals", addGoal);
 router.put("/goals", updateGoalStatus);
+router.put("/activate", activateStudyPlan);
+router.delete("/:planId", deleteStudyPlan);
 
 module.exports = router;

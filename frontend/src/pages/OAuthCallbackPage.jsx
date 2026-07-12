@@ -27,7 +27,7 @@ const OAuthCallbackPage = () => {
 
     if (token) {
       // Store token and load user profile from backend
-      localStorage.setItem("studymate_token", token);
+      sessionStorage.setItem("studymate_token", token);
       loadUser().then(() => {
         toast.success("Logged in successfully! 🎉");
         navigate("/home");

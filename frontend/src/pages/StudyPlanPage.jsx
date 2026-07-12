@@ -219,9 +219,6 @@ const StudyPlanPage = () => {
               <span className="material-symbols-outlined text-primary">route</span>
               Learning Roadmap
             </h4>
-            <span className="text-primary font-label-md hover:underline font-semibold cursor-pointer">
-              View Full Syllabus
-            </span>
           </div>
 
           <div className="relative pl-xs">

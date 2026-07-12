@@ -8,45 +8,9 @@ const ChatSession = require("../models/ChatSession");
 /** Get all chat sessions for the logged-in user */
 exports.getSessions = async (req, res, next) => {
   try {
-    let sessions = await ChatSession.find({ userId: req.user.id }).sort({ updatedAt: -1 });
-
-    // Seed default historical sessions if user has none
-    if (sessions.length === 0) {
-      sessions = await ChatSession.create([
-        {
-          userId: req.user.id,
-          topic: "Quantum Mechanics Basics",
-          messages: [
-            { sender: "ai", text: "Quantum mechanics is a fundamental theory in physics that provides a description of the physical properties of nature at the scale of atoms and subatomic particles. Would you like me to focus on Wave-Particle Duality or the Schrödinger Equation first?" },
-            { sender: "user", text: "Can you explain the observer effect? I find it confusing how looking at something changes it." },
-            { sender: "ai", text: "The observer effect in quantum mechanics states that the act of observation inevitably alters the system being measured. In classical physics, we assume we can measure a system without affecting it. However, in the quantum realm, particles like electrons behave as waves of probability. To 'look' at an electron, we must bounce a photon off it, which transfers energy and collapses its wave function from a spread-out set of probabilities into a single definite state! So, the observer is not just a passive recorder, but an active participant. Would you like to see how this relates to the Double-Slit Experiment or Heisenberg's Uncertainty Principle?" }
-          ]
-        },
-        {
-          userId: req.user.id,
-          topic: "Calculus II: Integration",
-          messages: [
-            { sender: "ai", text: "Integration is the process of finding the area under a curve. Let's work on Calculus II topics! Do you have any specific integration problems you want to solve?" },
-            { sender: "user", text: "Help me solve the partial fraction problem." },
-            { sender: "ai", text: "To solve an integral using partial fractions, we decompose a rational function into simpler terms that are easy to integrate. For example, if you have 1 / (x^2 - x), we factor the denominator to x(x - 1) and rewrite it as A/x + B/(x-1). Then we solve for A and B. Would you like to work through a specific problem together?" }
-          ]
-        },
-        {
-          userId: req.user.id,
-          topic: "Neuroscience Lecture 4",
-          messages: [
-            { sender: "ai", text: "Hi! Let's study Neuroscience. We can review synapse transmissions and neurons." }
-          ]
-        },
-        {
-          userId: req.user.id,
-          topic: "Modern Art Movements",
-          messages: [
-            { sender: "ai", text: "Welcome! Let's talk about Modern Art Movements like Surrealism, Cubism, or Dadaism." }
-          ]
-        }
-      ]);
-    }
+    const sessions = await ChatSession.find({ userId: req.user.id }).sort({
+      updatedAt: -1,
+    });
 
     res.status(200).json({
       success: true,
@@ -62,13 +26,7 @@ exports.createSession = async (req, res, next) => {
   try {
     const { topic } = req.body;
 
-    // Dynamically update user's StudyPlan/Roadmap to match the new session topic
-    try {
-      const { updateStudyPlanForTopic } = require("./studyPlanController");
-      await updateStudyPlanForTopic(req.user.id, topic || "New Study Session");
-    } catch (err) {
-      console.error("Failed to dynamically update study plan:", err);
-    }
+
 
     const newSession = await ChatSession.create({
       userId: req.user.id,

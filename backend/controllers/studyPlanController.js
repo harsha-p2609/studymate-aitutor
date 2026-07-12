@@ -36,68 +36,17 @@ const recalculateProgress = (plan) => {
   );
 };
 
-/** Get study plan for the logged-in user */
+/** Get study plans for the logged-in user (newest first) */
 exports.getStudyPlan = async (req, res, next) => {
   try {
-    let plan = await StudyPlan.findOne({ userId: req.user.id });
-
-    // Initialize default plan if it doesn't exist
-    if (!plan) {
-      plan = await StudyPlan.create({
-        userId: req.user.id,
-        roadmapTitle: "Full-Stack Development Mastery",
-        overallProgress: 0,
-        streak: 0,
-        lastStudyDate: null,
-        timeline: [
-          {
-            title: "Foundations of Modern Web",
-            status: "current",
-            completedDate: "",
-            progressPercent: 0,
-            lessonsCount: 4,
-            examsCount: 1,
-            challengesCount: 2,
-          },
-          {
-            title: "Advanced React State Management",
-            status: "upcoming",
-            completedDate: "",
-            progressPercent: 0,
-            lessonsCount: 3,
-            examsCount: 1,
-            challengesCount: 2,
-          },
-          {
-            title: "Backend Scalability & Node.js",
-            status: "upcoming",
-            completedDate: "",
-            progressPercent: 0,
-            lessonsCount: 6,
-            examsCount: 2,
-            challengesCount: 3,
-          },
-          {
-            title: "Cloud Deployment & CI/CD",
-            status: "upcoming",
-            completedDate: "",
-            progressPercent: 0,
-            lessonsCount: 5,
-            examsCount: 1,
-            challengesCount: 2,
-          },
-        ],
-        dailyGoals: [
-          { task: "Review Redux Toolkit slices", completed: false, difficulty: "Medium", estMinutes: 45 },
-          { task: "Solve 2 Performance Challenges", completed: false, difficulty: "High", estMinutes: 60 },
-          { task: "Watch \"Hydration in SSR\" module", completed: false, difficulty: "Medium", estMinutes: 30 },
-        ],
-      });
-    }
+    const plans = await StudyPlan.find({ userId: req.user.id }).sort({ updatedAt: -1 });
+    const activePlan = plans[0] || null;
+    const otherPlans = plans.slice(1);
 
     res.status(200).json({
       success: true,
-      data: plan,
+      data: activePlan,
+      otherPlans: otherPlans,
     });
   } catch (error) {
     next(error);
@@ -138,7 +87,7 @@ exports.addGoal = async (req, res, next) => {
       });
     }
 
-    const plan = await StudyPlan.findOne({ userId: req.user.id });
+    const plan = await StudyPlan.findOne({ userId: req.user.id }).sort({ updatedAt: -1 });
     if (!plan) {
       return res.status(404).json({
         success: false,
@@ -171,7 +120,7 @@ exports.updateGoalStatus = async (req, res, next) => {
       });
     }
 
-    const plan = await StudyPlan.findOne({ userId: req.user.id });
+    const plan = await StudyPlan.findOne({ userId: req.user.id }).sort({ updatedAt: -1 });
     if (!plan) {
       return res.status(404).json({
         success: false,
@@ -417,25 +366,21 @@ Return ONLY a valid JSON object matching this format (no markdown blocks, no bac
     estMinutes: item.estMinutes || 30,
   }));
 
-  // Update existing or create new study plan
-  let plan = await StudyPlan.findOne({ userId });
-  if (plan) {
-    plan.roadmapTitle = parsedPlan.roadmapTitle;
-    plan.overallProgress = 0;
-    plan.timeline = formattedTimeline;
-    plan.dailyGoals = formattedGoals;
-    await plan.save();
-  } else {
-    plan = await StudyPlan.create({
-      userId,
-      roadmapTitle: parsedPlan.roadmapTitle,
-      overallProgress: 0,
-      streak: 0,
-      lastStudyDate: null,
-      timeline: formattedTimeline,
-      dailyGoals: formattedGoals,
-    });
-  }
+  // Fetch previous plan to carry over the user's streak
+  const lastPlan = await StudyPlan.findOne({ userId }).sort({ updatedAt: -1 });
+  const streak = lastPlan ? lastPlan.streak : 0;
+  const lastStudyDate = lastPlan ? lastPlan.lastStudyDate : null;
+
+  // Always create a new study plan for multiple roadmaps support
+  const plan = await StudyPlan.create({
+    userId,
+    roadmapTitle: parsedPlan.roadmapTitle,
+    overallProgress: 0,
+    streak,
+    lastStudyDate,
+    timeline: formattedTimeline,
+    dailyGoals: formattedGoals,
+  });
 
   return plan;
 };
@@ -451,7 +396,7 @@ exports.updateModuleStatus = async (req, res, next) => {
       });
     }
 
-    const plan = await StudyPlan.findOne({ userId: req.user.id });
+    const plan = await StudyPlan.findOne({ userId: req.user.id }).sort({ updatedAt: -1 });
     if (!plan) {
       return res.status(404).json({
         success: false,
@@ -499,6 +444,72 @@ exports.updateModuleStatus = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: plan,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Activate a specific study plan (updates its updatedAt timestamp) */
+exports.activateStudyPlan = async (req, res, next) => {
+  try {
+    const { planId } = req.body;
+    if (!planId) {
+      return res.status(400).json({
+        success: false,
+        message: "planId is required to activate study plan",
+      });
+    }
+
+    const plan = await StudyPlan.findOneAndUpdate(
+      { _id: planId, userId: req.user.id },
+      { $set: { updatedAt: new Date() } },
+      { new: true }
+    );
+
+    if (!plan) {
+      return res.status(404).json({
+        success: false,
+        message: "Study plan not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Study plan activated successfully",
+      data: plan,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Delete a specific study plan/roadmap */
+exports.deleteStudyPlan = async (req, res, next) => {
+  try {
+    const { planId } = req.params;
+    if (!planId) {
+      return res.status(400).json({
+        success: false,
+        message: "planId is required to delete study plan",
+      });
+    }
+
+    const plan = await StudyPlan.findOneAndDelete({
+      _id: planId,
+      userId: req.user.id,
+    });
+
+    if (!plan) {
+      return res.status(404).json({
+        success: false,
+        message: "Study plan not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Study plan deleted successfully",
     });
   } catch (error) {
     next(error);

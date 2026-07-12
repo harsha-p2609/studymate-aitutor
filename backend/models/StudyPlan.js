@@ -70,7 +70,6 @@ const StudyPlanSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true, // One study plan per user
     },
     roadmapTitle: {
       type: String,

@@ -16,9 +16,9 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true); // True on initial load
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // ── Load user from localStorage on app start ─────────────
+  // ── Load user from sessionStorage on app start ─────────────
   const loadUser = useCallback(async () => {
-    const token = localStorage.getItem("studymate_token");
+    const token = sessionStorage.getItem("studymate_token");
 
     if (!token) {
       setIsLoading(false);
@@ -32,8 +32,8 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
     } catch {
       // Token is invalid or expired — clear storage
-      localStorage.removeItem("studymate_token");
-      localStorage.removeItem("studymate_user");
+      sessionStorage.removeItem("studymate_token");
+      sessionStorage.removeItem("studymate_user");
       setUser(null);
       setIsAuthenticated(false);
     } finally {
@@ -45,10 +45,10 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, [loadUser]);
 
-  // ── Login: store token and user in state + localStorage ──
+  // ── Login: store token and user in state + sessionStorage ──
   const login = (token, userData) => {
-    localStorage.setItem("studymate_token", token);
-    localStorage.setItem("studymate_user", JSON.stringify(userData));
+    sessionStorage.setItem("studymate_token", token);
+    sessionStorage.setItem("studymate_user", JSON.stringify(userData));
     setUser(userData);
     setIsAuthenticated(true);
   };
@@ -60,8 +60,8 @@ export const AuthProvider = ({ children }) => {
     } catch {
       // Silently fail — we'll clear client state regardless
     } finally {
-      localStorage.removeItem("studymate_token");
-      localStorage.removeItem("studymate_user");
+      sessionStorage.removeItem("studymate_token");
+      sessionStorage.removeItem("studymate_user");
       setUser(null);
       setIsAuthenticated(false);
     }

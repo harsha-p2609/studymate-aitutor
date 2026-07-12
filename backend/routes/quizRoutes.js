@@ -13,6 +13,7 @@ const {
   getRecentAttempts,
   generateQuiz,
   clearAttempts,
+  deleteQuiz,
 } = require("../controllers/quizController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -24,6 +25,7 @@ router.get("/", getQuizzes);
 router.get("/attempts/recent", getRecentAttempts);
 router.post("/generate", generateQuiz);
 router.delete("/attempts/clear", clearAttempts);
+router.delete("/:id", deleteQuiz);
 router.get("/:id", getQuizById);
 router.post("/:id/submit", submitQuiz);
 

@@ -24,6 +24,8 @@ const AiTutorPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [deletingSessionId, setDeletingSessionId] = useState(null);
+  const [confirmClearAllChat, setConfirmClearAllChat] = useState(false);
   const fileInputRef = useRef(null);
 
   // ── Load Sessions List ──────────────────────────────────────
@@ -128,17 +130,12 @@ const AiTutorPage = () => {
   };
 
   // ── Delete Session ──────────────────────────────────────────
-  const handleDeleteSession = async (e, sessionId) => {
-    e.stopPropagation(); // Prevent choosing/selecting the session when clicking delete
-    
-    if (!window.confirm("Are you sure you want to delete this study session history?")) {
-      return;
-    }
-
+  const handleDeleteSession = async (sessionId) => {
     try {
       const res = await api.delete(`/chat/sessions/${sessionId}`);
       if (res.data.success) {
         toast.success("Study session deleted");
+        setDeletingSessionId(null);
         
         // Remove the session from local sessions array
         const updatedSessions = sessions.filter((s) => s._id !== sessionId);
@@ -164,16 +161,13 @@ const AiTutorPage = () => {
   const handleDeleteAllSessions = async () => {
     if (sessions.length === 0) return;
 
-    if (!window.confirm(`Are you sure you want to delete all ${sessions.length} chat session(s)? This cannot be undone.`)) {
-      return;
-    }
-
     try {
       const res = await api.delete("/chat/sessions");
       if (res.data.success) {
         toast.success("All chat history cleared");
         setSessions([]);
         setActiveSession(null);
+        setConfirmClearAllChat(false);
       }
     } catch (err) {
       console.error("Error clearing all sessions:", err);
@@ -458,13 +452,30 @@ const AiTutorPage = () => {
               <span className="material-symbols-outlined text-[20px]">add_comment</span>
             </button>
             {sessions.length > 0 && (
-              <button
-                onClick={handleDeleteAllSessions}
-                className="text-outline/70 hover:text-error hover:bg-error/5 p-1.5 rounded-lg transition-all flex items-center"
-                title="Clear All History"
-              >
-                <span className="material-symbols-outlined text-[20px]">delete_sweep</span>
-              </button>
+              confirmClearAllChat ? (
+                <div className="flex items-center gap-xs">
+                  <button
+                    onClick={handleDeleteAllSessions}
+                    className="text-white bg-error px-2 py-1 text-[11px] font-bold rounded-lg hover:bg-error/90 active:scale-95 transition-all"
+                  >
+                    Confirm
+                  </button>
+                  <button
+                    onClick={() => setConfirmClearAllChat(false)}
+                    className="text-outline border border-outline-variant bg-white px-2 py-1 text-[11px] font-bold rounded-lg hover:bg-surface-container-high active:scale-95 transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmClearAllChat(true)}
+                  className="text-outline/70 hover:text-error hover:bg-error/5 p-1.5 rounded-lg transition-all flex items-center"
+                  title="Clear All History"
+                >
+                  <span className="material-symbols-outlined text-[20px]">delete_sweep</span>
+                </button>
+              )
             )}
             {/* Collapse button inside sidebar header for easy navigation */}
             <button
@@ -504,13 +515,41 @@ const AiTutorPage = () => {
                     <span className="text-[10px] text-outline">
                       {sess.updatedAt ? new Date(sess.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
                     </span>
-                    <button
-                      onClick={(e) => handleDeleteSession(e, sess._id)}
-                      className="text-outline/60 hover:text-error p-0.5 rounded transition-all active:scale-95 flex items-center justify-center cursor-pointer"
-                      title="Delete Session"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">delete</span>
-                    </button>
+                    {deletingSessionId === sess._id ? (
+                      <div className="flex items-center gap-xs">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSession(sess._id);
+                          }}
+                          className="text-tertiary hover:bg-tertiary/10 p-0.5 rounded transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                          title="Confirm Delete"
+                        >
+                          <span className="material-symbols-outlined text-[16px] font-bold">check</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeletingSessionId(null);
+                          }}
+                          className="text-error hover:bg-error/10 p-0.5 rounded transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                          title="Cancel"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingSessionId(sess._id);
+                        }}
+                        className="text-outline/60 hover:text-error p-0.5 rounded transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                        title="Delete Session"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                      </button>
+                    )}
                   </div>
                 </div>
                 <p className="text-label-sm text-on-surface-variant line-clamp-1">

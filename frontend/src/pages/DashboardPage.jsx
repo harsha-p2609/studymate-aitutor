@@ -9,9 +9,28 @@ import { useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast";
 
+const getModuleStyle = (title, index) => {
+  const titleLower = title ? title.toLowerCase() : "";
+  const styles = [
+    { icon: "data_object", bg: "bg-blue-100", text: "text-blue-600", bar: "bg-secondary-container" },
+    { icon: "terminal", bg: "bg-green-100", text: "text-green-600", bar: "bg-primary-container" },
+    { icon: "database", bg: "bg-emerald-100", text: "text-emerald-600", bar: "bg-tertiary" },
+    { icon: "cloud", bg: "bg-purple-100", text: "text-purple-600", bar: "bg-primary" },
+    { icon: "menu_book", bg: "bg-orange-100", text: "text-orange-600", bar: "bg-warning" },
+  ];
+  
+  if (titleLower.includes("foundation") || titleLower.includes("basic") || titleLower.includes("intro")) return styles[0];
+  if (titleLower.includes("react") || titleLower.includes("javascript") || titleLower.includes("js") || titleLower.includes("frontend")) return styles[1];
+  if (titleLower.includes("database") || titleLower.includes("dbms") || titleLower.includes("sql") || titleLower.includes("mongo")) return styles[2];
+  if (titleLower.includes("cloud") || titleLower.includes("deploy") || titleLower.includes("docker") || titleLower.includes("aws")) return styles[3];
+  
+  return styles[index % styles.length];
+};
+
 const DashboardPage = () => {
   const navigate = useNavigate();
   const [studyPlan, setStudyPlan] = useState(null);
+  const [otherPlans, setOtherPlans] = useState([]);
   const [recentAttempts, setRecentAttempts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [aiPrompt, setAiPrompt] = useState("");
@@ -41,6 +60,34 @@ const DashboardPage = () => {
     return () => clearInterval(interval);
   }, [isGenerating]);
 
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      // Fetch study plan and recent attempts in parallel
+      const [planRes, attemptsRes] = await Promise.all([
+        api.get("/study-plan"),
+        api.get("/quizzes/attempts/recent"),
+      ]);
+
+      if (planRes.data.success) {
+        setStudyPlan(planRes.data.data);
+        setOtherPlans(planRes.data.otherPlans || []);
+      }
+      if (attemptsRes.data.success) {
+        setRecentAttempts(attemptsRes.data.data);
+      }
+    } catch (err) {
+      console.error("Error loading dashboard data:", err);
+      toast.error("Failed to load dashboard metrics");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
   const handleGenerateRoadmap = async (e) => {
     e.preventDefault();
     if (!topic || topic.trim() === "") {
@@ -54,9 +101,9 @@ const DashboardPage = () => {
       const res = await api.post("/study-plan/regenerate", { topic });
       if (res.data.success) {
         toast.success("New study roadmap generated successfully! 🚀");
-        setStudyPlan(res.data.data);
         setIsModalOpen(false);
         setTopic("");
+        fetchDashboardData();
       }
     } catch (err) {
       console.error("Error generating roadmap:", err);
@@ -66,32 +113,42 @@ const DashboardPage = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        // Fetch study plan and recent attempts in parallel
-        const [planRes, attemptsRes] = await Promise.all([
-          api.get("/study-plan"),
-          api.get("/quizzes/attempts/recent"),
-        ]);
-
-        if (planRes.data.success) {
-          setStudyPlan(planRes.data.data);
-        }
-        if (attemptsRes.data.success) {
-          setRecentAttempts(attemptsRes.data.data);
-        }
-      } catch (err) {
-        console.error("Error loading dashboard data:", err);
-        toast.error("Failed to load dashboard metrics");
-      } finally {
-        setLoading(false);
+  const handleActivatePlan = async (planId) => {
+    try {
+      setLoading(true);
+      const res = await api.put("/study-plan/activate", { planId });
+      if (res.data.success) {
+        toast.success("Roadmap activated! 🚀");
+        fetchDashboardData();
       }
-    };
+    } catch (err) {
+      console.error("Error activating roadmap:", err);
+      toast.error("Failed to switch roadmap.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchDashboardData();
-  }, []);
+  const handleDeletePlan = async (e, planId) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this study plan/roadmap?")) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await api.delete(`/study-plan/${planId}`);
+      if (res.data.success) {
+        toast.success("Roadmap deleted successfully!");
+        fetchDashboardData();
+      }
+    } catch (err) {
+      console.error("Error deleting roadmap:", err);
+      toast.error("Failed to delete roadmap.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAiTutorRedirect = (e) => {
     e.preventDefault();
@@ -144,12 +201,6 @@ const DashboardPage = () => {
     };
   });
 
-  // Calculate Roadmap Progress percentages for Learning cards
-  const getModuleProgress = (titleKeyword, fallback) => {
-    const mod = studyPlan?.timeline?.find(t => t.title.toLowerCase().includes(titleKeyword.toLowerCase()));
-    return mod ? mod.progressPercent : fallback;
-  };
-
   return (
     <div className="px-gutter py-md pb-32 flex-grow">
       {/* ── Section 1: Analytics Cards ────────────────────────────────── */}
@@ -173,7 +224,7 @@ const DashboardPage = () => {
             <span className="material-symbols-outlined text-primary text-[24px]">school</span>
           </div>
           <div className="flex items-baseline gap-xs">
-            <span className="font-headline-lg text-headline-lg font-bold">{topicsMastered || 2}</span>
+            <span className="font-headline-lg text-headline-lg font-bold">{topicsMastered}</span>
             <span className="font-body-md text-body-md text-on-surface-variant">Modules</span>
           </div>
         </div>
@@ -185,7 +236,7 @@ const DashboardPage = () => {
             <span className="material-symbols-outlined text-secondary text-[24px]">assignment</span>
           </div>
           <div className="flex items-baseline gap-xs">
-            <span className="font-headline-lg text-headline-lg font-bold">{passedQuizzesCount || 2}</span>
+            <span className="font-headline-lg text-headline-lg font-bold">{passedQuizzesCount}</span>
             <span className="font-body-md text-body-md text-on-surface-variant">Tests</span>
           </div>
         </div>
@@ -216,72 +267,89 @@ const DashboardPage = () => {
                 </Link>
               </div>
 
-              <div className="space-y-sm">
-                {studyPlan?.timeline?.map((module, index) => {
-                  const isCompleted = module.status === "completed";
-                  const isCurrent = module.status === "current";
+              {studyPlan && studyPlan.timeline && studyPlan.timeline.length > 0 ? (
+                <div className="space-y-sm">
+                  {studyPlan.timeline.map((module, index) => {
+                    const isCompleted = module.status === "completed";
+                    const isCurrent = module.status === "current";
 
-                  return (
-                    <div
-                      key={module.title || index}
-                      className="relative pl-8 before:content-[''] before:absolute before:left-[11px] before:top-[24px] before:bottom-[-16px] before:width-[2px] before:bg-outline-variant last:before:hidden"
-                    >
-                      {/* Checkpoint Icon */}
-                      {isCompleted ? (
-                        <span className="absolute left-0 top-0 w-6 h-6 rounded-full bg-tertiary text-white flex items-center justify-center shadow-sm">
-                          <span className="material-symbols-outlined text-[16px] font-bold">check</span>
-                        </span>
-                      ) : isCurrent ? (
-                        <span className="absolute left-0 top-0 w-6 h-6 rounded-full bg-primary-container text-white flex items-center justify-center shadow-md animate-pulse">
-                          <span className="material-symbols-outlined text-[16px]">play_arrow</span>
-                        </span>
-                      ) : (
-                        <span className="absolute left-0 top-0 w-6 h-6 rounded-full bg-surface-container-high border-2 border-outline-variant flex items-center justify-center text-outline"></span>
-                      )}
-
+                    return (
                       <div
-                        className={`flex justify-between items-center p-xs rounded-lg transition-all ${
-                          isCurrent
-                            ? "bg-primary-container/5 border border-primary/20 p-sm"
-                            : "border border-transparent"
-                        }`}
+                        key={module.title || index}
+                        className="relative pl-8 before:content-[''] before:absolute before:left-[11px] before:top-[24px] before:bottom-[-16px] before:width-[2px] before:bg-outline-variant last:before:hidden"
                       >
-                        <div>
-                          <p
-                            className={`font-label-md text-label-md font-bold ${
-                              isCurrent ? "text-primary" : "text-on-surface"
-                            } ${isCompleted ? "opacity-60 line-through" : ""}`}
-                          >
-                            {module.title}
-                          </p>
-                          <p className="text-on-surface-variant text-label-sm">
-                            {isCompleted
-                              ? `Completed on ${module.completedDate}`
-                              : isCurrent
-                              ? `Current Focus • ${module.progressPercent}% progress`
-                              : "Upcoming Focus"}
-                          </p>
-                        </div>
-
-                        {isCompleted && (
-                          <span className="px-2 py-1 bg-tertiary-container text-white text-[10px] rounded uppercase font-bold tracking-wider">
-                            Mastered
+                        {/* Checkpoint Icon */}
+                        {isCompleted ? (
+                          <span className="absolute left-0 top-0 w-6 h-6 rounded-full bg-tertiary text-white flex items-center justify-center shadow-sm">
+                            <span className="material-symbols-outlined text-[16px] font-bold">check</span>
                           </span>
+                        ) : isCurrent ? (
+                          <span className="absolute left-0 top-0 w-6 h-6 rounded-full bg-primary-container text-white flex items-center justify-center shadow-md animate-pulse">
+                            <span className="material-symbols-outlined text-[16px]">play_arrow</span>
+                          </span>
+                        ) : (
+                          <span className="absolute left-0 top-0 w-6 h-6 rounded-full bg-surface-container-high border-2 border-outline-variant flex items-center justify-center text-outline"></span>
                         )}
 
-                        {isCurrent && (
-                          <button
-                            onClick={() => navigate("/study-plan")}
-                            className="bg-primary text-white text-[12px] px-sm py-1 rounded-full font-bold hover:bg-primary/90 transition-all shadow-sm active:scale-95"
-                          >
-                            Continue
-                          </button>
-                        )}
+                        <div
+                          className={`flex justify-between items-center p-xs rounded-lg transition-all ${
+                            isCurrent
+                              ? "bg-primary-container/5 border border-primary/20 p-sm"
+                              : "border border-transparent"
+                          }`}
+                        >
+                          <div>
+                            <p
+                              className={`font-label-md text-label-md font-bold ${
+                                isCurrent ? "text-primary" : "text-on-surface"
+                              } ${isCompleted ? "opacity-60 line-through" : ""}`}
+                            >
+                              {module.title}
+                            </p>
+                            <p className="text-on-surface-variant text-label-sm">
+                              {isCompleted
+                                ? `Completed on ${module.completedDate}`
+                                : isCurrent
+                                ? `Current Focus • ${module.progressPercent}% progress`
+                                : "Upcoming Focus"}
+                            </p>
+                          </div>
+
+                          {isCompleted && (
+                            <span className="px-2 py-1 bg-tertiary-container text-white text-[10px] rounded uppercase font-bold tracking-wider">
+                              Mastered
+                            </span>
+                          )}
+
+                          {isCurrent && (
+                            <button
+                              onClick={() => navigate("/study-plan")}
+                              className="bg-primary text-white text-[12px] px-sm py-1 rounded-full font-bold hover:bg-primary/90 transition-all shadow-sm active:scale-95"
+                            >
+                              Continue
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center p-lg text-center bg-surface-container-low rounded-xl border border-dashed border-outline-variant py-xl">
+                  <span className="material-symbols-outlined text-[48px] text-outline mb-sm">route</span>
+                  <h4 className="font-title-sm text-title-sm font-bold text-on-surface mb-xs">No Study Roadmap Found</h4>
+                  <p className="text-on-surface-variant font-body-md mb-md max-w-sm">
+                    Generate a personalized study roadmap to organize your learning path, track progress, and get daily study goals.
+                  </p>
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="px-md py-2.5 bg-primary text-white font-label-md rounded-xl font-bold hover:bg-primary/95 transition-all shadow-sm active:scale-95 flex items-center gap-xs"
+                  >
+                    Create a Roadmap
+                    <span className="material-symbols-outlined text-[18px]">add</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -417,33 +485,11 @@ const DashboardPage = () => {
                         </tr>
                       ))
                     ) : (
-                      // Render Default Mock Items if database has no attempts yet
-                      <>
-                        <tr className="hover:bg-surface-container-low transition-colors">
-                          <td className="px-md py-4 font-label-md text-on-surface font-semibold">ES6 Features</td>
-                          <td className="px-md py-4 text-label-sm text-on-surface-variant">Oct 18, 2023</td>
-                          <td className="px-md py-4 font-bold text-primary">88%</td>
-                          <td className="px-md py-4">
-                            <span className="px-2 py-1 bg-tertiary-container text-white text-[10px] rounded-full uppercase font-bold">Passed</span>
-                          </td>
-                        </tr>
-                        <tr className="hover:bg-surface-container-low transition-colors">
-                          <td className="px-md py-4 font-label-md text-on-surface font-semibold">Tailwind Config</td>
-                          <td className="px-md py-4 text-label-sm text-on-surface-variant">Oct 17, 2023</td>
-                          <td className="px-md py-4 font-bold text-primary">92%</td>
-                          <td className="px-md py-4">
-                            <span className="px-2 py-1 bg-tertiary-container text-white text-[10px] rounded-full uppercase font-bold">Passed</span>
-                          </td>
-                        </tr>
-                        <tr className="hover:bg-surface-container-low transition-colors">
-                          <td className="px-md py-4 font-label-md text-on-surface font-semibold">Async JavaScript</td>
-                          <td className="px-md py-4 text-label-sm text-on-surface-variant">Oct 15, 2023</td>
-                          <td className="px-md py-4 font-bold text-error">42%</td>
-                          <td className="px-md py-4">
-                            <span className="px-2 py-1 bg-error-container text-on-error-container text-[10px] rounded-full uppercase font-bold">Retake</span>
-                          </td>
-                        </tr>
-                      </>
+                      <tr>
+                        <td colSpan="4" className="px-md py-8 text-center text-on-surface-variant font-body-md">
+                          No quiz attempts found. Take a quiz to see your results here!
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
@@ -466,29 +512,49 @@ const DashboardPage = () => {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-md pb-2">
-          {[
-            { subject: "Web Foundations", progress: getModuleProgress("Foundations", 0), icon: "data_object", bg: "bg-blue-100", text: "text-blue-600", bar: "bg-secondary-container" },
-            { subject: "React", progress: getModuleProgress("React", 0), icon: "terminal", bg: "bg-green-100", text: "text-green-600", bar: "bg-primary-container" },
-            { subject: "Node.js", progress: getModuleProgress("Node", 0), icon: "database", bg: "bg-emerald-100", text: "text-emerald-600", bar: "bg-tertiary" },
-            { subject: "Cloud Deploy", progress: getModuleProgress("Cloud", 0), icon: "cloud", bg: "bg-purple-100", text: "text-purple-600", bar: "bg-primary" },
-          ].map((item) => (
-            <div
-              key={item.subject}
-              onClick={() => navigate("/study-plan")}
-              className="bg-white border border-outline-variant p-md rounded-xl hover:-translate-y-1 transition-all cursor-pointer shadow-sm hover:shadow-md flex flex-col justify-between"
-            >
-              <div>
-                <div className={`w-12 h-12 rounded-lg ${item.bg} flex items-center justify-center ${item.text} mb-sm`}>
-                  <span className="material-symbols-outlined text-[28px]">{item.icon}</span>
+          {otherPlans && otherPlans.length > 0 ? (
+            otherPlans.map((item, index) => {
+              const style = getModuleStyle(item.roadmapTitle, index);
+              return (
+                <div
+                  key={item._id || index}
+                  onClick={() => handleActivatePlan(item._id)}
+                  className="bg-white border border-outline-variant p-md rounded-xl hover:-translate-y-1 transition-all cursor-pointer shadow-sm hover:shadow-md flex flex-col justify-between group relative"
+                >
+                  {/* Delete Button */}
+                  <button
+                    onClick={(e) => handleDeletePlan(e, item._id)}
+                    className="absolute top-3 right-3 text-outline hover:text-error p-1 rounded-lg hover:bg-error/5 opacity-0 group-hover:opacity-100 transition-all active:scale-90"
+                    title="Delete Roadmap"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                  </button>
+
+                  <div>
+                    <div className={`w-12 h-12 rounded-lg ${style.bg} flex items-center justify-center ${style.text} mb-sm`}>
+                      <span className="material-symbols-outlined text-[28px]">{style.icon}</span>
+                    </div>
+                    <h4 className="font-label-md text-label-md font-bold text-on-surface mb-xs line-clamp-1">{item.roadmapTitle}</h4>
+                    <p className="text-label-sm text-on-surface-variant mb-md">{item.overallProgress}% Progress</p>
+                  </div>
+                  <div className="flex flex-col gap-sm">
+                    <div className="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+                      <div className={`${style.bar} h-full rounded-full`} style={{ width: `${item.overallProgress}%` }}></div>
+                    </div>
+                    <div className="text-primary font-bold text-[12px] opacity-0 group-hover:opacity-100 transition-opacity mt-1 flex items-center gap-xs">
+                      <span>Resume roadmap</span>
+                      <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                    </div>
+                  </div>
                 </div>
-                <h4 className="font-label-md text-label-md font-bold text-on-surface mb-xs">{item.subject}</h4>
-                <p className="text-label-sm text-on-surface-variant mb-md">{item.progress}% Progress</p>
-              </div>
-              <div className="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
-                <div className={`${item.bar} h-full rounded-full`} style={{ width: `${item.progress}%` }}></div>
-              </div>
+              );
+            })
+          ) : (
+            <div className="col-span-full py-lg text-center bg-white/50 border border-dashed border-outline-variant rounded-xl">
+              <span className="material-symbols-outlined text-[36px] text-outline mb-sm">route</span>
+              <p className="text-on-surface-variant font-label-md">No older roadmaps found. Create another subject roadmap to see it here!</p>
             </div>
-          ))}
+          )}
         </div>
       </section>
 

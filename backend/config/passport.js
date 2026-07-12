@@ -78,8 +78,6 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   );
 
   console.log("✅ Google OAuth strategy registered");
-} else {
-  console.warn("⚠️  Google OAuth not configured (GOOGLE_CLIENT_ID missing in .env)");
 }
 
 // ── GitHub OAuth Strategy ───────────────────────────────────

@@ -21,7 +21,7 @@ const api = axios.create({
 // Automatically attach JWT token to every outgoing request
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("studymate_token");
+    const token = sessionStorage.getItem("studymate_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -37,8 +37,8 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Clear token and redirect to login if unauthorized
-      localStorage.removeItem("studymate_token");
-      localStorage.removeItem("studymate_user");
+      sessionStorage.removeItem("studymate_token");
+      sessionStorage.removeItem("studymate_user");
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
       }
