@@ -27,6 +27,34 @@ const getModuleStyle = (title, index) => {
   return styles[index % styles.length];
 };
 
+const EXPLAIN_POOL = [
+  { prefix: "Explain concept", suffix: "of wave-particle duality", full: "Explain the concept of wave-particle duality." },
+  { prefix: "Explain concept", suffix: "of recursion in coding", full: "Explain recursion in coding simply." },
+  { prefix: "Explain concept", suffix: "of photosynthesis", full: "Explain photosynthesis step-by-step." },
+  { prefix: "Explain concept", suffix: "of RESTful APIs", full: "Explain how RESTful APIs work." },
+  { prefix: "Explain concept", suffix: "of quantum entanglement", full: "Explain quantum entanglement in simple terms." },
+  { prefix: "Explain concept", suffix: "of OOP principles", full: "Explain Object-Oriented Programming principles." },
+  { prefix: "Explain concept", suffix: "of database indexing", full: "Explain how database indexing works." }
+];
+
+const QUIZ_POOL = [
+  { prefix: "Generate a quiz", suffix: "on data structures", full: "Generate a practice quiz on data structures." },
+  { prefix: "Generate a quiz", suffix: "on React Hooks", full: "Generate a quiz on React Hooks." },
+  { prefix: "Generate a quiz", suffix: "on operating systems", full: "Generate a practice quiz on operating systems." },
+  { prefix: "Generate a quiz", suffix: "on SQL databases", full: "Generate a quiz on SQL databases." },
+  { prefix: "Generate a quiz", suffix: "on machine learning", full: "Generate a quiz on basic machine learning concepts." },
+  { prefix: "Generate a quiz", suffix: "on CSS Flexbox", full: "Generate a quiz on CSS Flexbox and Grid." }
+];
+
+const FLASHCARD_POOL = [
+  { prefix: "Create flashcards", suffix: "for JavaScript variables", full: "Create flashcards for JavaScript variables." },
+  { prefix: "Create flashcards", suffix: "for anatomy terms", full: "Create flashcards for human anatomy terminology." },
+  { prefix: "Create flashcards", suffix: "for machine learning", full: "Create study flashcards for machine learning algorithms." },
+  { prefix: "Create flashcards", suffix: "for networking protocols", full: "Create flashcards for computer networking protocols." },
+  { prefix: "Create flashcards", suffix: "for SQL commands", full: "Create flashcards for basic SQL commands." },
+  { prefix: "Create flashcards", suffix: "for git commands", full: "Create flashcards for common Git commands." }
+];
+
 const DashboardPage = () => {
   const navigate = useNavigate();
   const [studyPlan, setStudyPlan] = useState(null);
@@ -34,6 +62,30 @@ const DashboardPage = () => {
   const [recentAttempts, setRecentAttempts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [aiPrompt, setAiPrompt] = useState("");
+  
+  const [chatSuggestions, setChatSuggestions] = useState([]);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  useEffect(() => {
+    const getNewSuggestions = () => {
+      const randomExplain = EXPLAIN_POOL[Math.floor(Math.random() * EXPLAIN_POOL.length)];
+      const randomQuiz = QUIZ_POOL[Math.floor(Math.random() * QUIZ_POOL.length)];
+      const randomFlashcard = FLASHCARD_POOL[Math.floor(Math.random() * FLASHCARD_POOL.length)];
+      return [randomExplain, randomQuiz, randomFlashcard].sort(() => Math.random() - 0.5);
+    };
+
+    setChatSuggestions(getNewSuggestions());
+
+    const interval = setInterval(() => {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setChatSuggestions(getNewSuggestions());
+        setIsTransitioning(false);
+      }, 400);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Modal states for Dynamic Roadmap Generation
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -354,49 +406,77 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        {/* AI Tutor Card */}
-        <div className="lg:col-span-4">
-          <div className="bg-primary-container text-on-primary-container p-md rounded-xl shadow-lg h-full relative overflow-hidden flex flex-col justify-between">
-            {/* Background decoration */}
-            <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+        {/* AI Tutor Card (Mascot Chat Style) */}
+        <div className="lg:col-span-4 relative mt-12 lg:mt-0 pt-10 lg:pt-0">
+          {/* Floating 3D Mascot */}
+          <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 z-20 pointer-events-none drop-shadow-lg">
+            <img
+              src="/study_robot_mascot.png"
+              alt="AI Study Mascot"
+              className="w-full h-full object-contain animate-float"
+            />
+          </div>
 
-            <div>
-              <div className="flex items-center gap-sm mb-md">
-                <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-primary shadow-sm">
-                  <span className="material-symbols-outlined text-[32px]">smart_toy</span>
-                </div>
-                <div>
-                  <h3 className="font-title-md text-title-md leading-none mb-1 font-bold text-white">AI Tutor</h3>
-                  <span className="text-label-sm opacity-80 flex items-center gap-1">
-                    <span className="w-2 h-2 bg-tertiary-fixed rounded-full animate-pulse"></span>
-                    Online & Ready
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex flex-col justify-center items-center text-center p-md">
-                <div className="w-32 h-32 mb-md bg-white/10 rounded-2xl flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[72px] text-white/80 animate-bounce">psychology</span>
-                </div>
-                <p className="font-body-md text-body-md mb-lg text-on-primary-container/95">
-                  Stuck on a problem? Ask me to explain concepts, summarize notes, or quiz you!
-                </p>
-              </div>
+          <div
+            className="border border-outline-variant p-md rounded-[28px] shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[320px] max-h-[340px]"
+            style={{
+              background: "linear-gradient(180deg, #FFFFFF 0%, #FFF5F7 50%, #F5ECFF 100%)",
+            }}
+          >
+            {/* Top Control Icons */}
+            <div className="flex justify-between items-center z-10">
+              <button
+                onClick={() => navigate("/ai-tutor")}
+                className="w-8 h-8 rounded-full bg-surface-container/60 hover:bg-surface-container text-on-surface flex items-center justify-center transition-all active:scale-90"
+                title="Open AI Tutor"
+              >
+                <span className="material-symbols-outlined text-[18px]">open_in_full</span>
+              </button>
+              <button
+                onClick={() => setAiPrompt("")}
+                className="w-8 h-8 rounded-full bg-surface-container/60 hover:bg-surface-container text-on-surface flex items-center justify-center transition-all active:scale-90"
+                title="Clear input"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
             </div>
 
-            <form onSubmit={handleAiTutorRedirect} className="relative mt-md">
+            {/* Recommendation Bubbles */}
+            <div className="flex flex-col gap-xs my-auto pt-6 pb-2 z-10 w-full">
+              {chatSuggestions.map((suggestion, idx) => {
+                const isLeft = idx === 1; // Left align the second bubble, right align others
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => setAiPrompt(suggestion.full)}
+                    className={`suggestion-bubble bg-white px-[12px] py-[6px] rounded-2xl ${
+                      isLeft ? "rounded-tl-none self-start" : "rounded-tr-none self-end"
+                    } ${
+                      isTransitioning ? "transitioning" : ""
+                    } shadow-sm hover:shadow-md hover:border-primary/30 border border-outline-variant/30 max-w-[85%] cursor-pointer active:scale-95`}
+                  >
+                    <p className="text-label-sm text-on-surface-variant leading-snug">
+                      <span className="text-primary font-bold">{suggestion.prefix}</span> {suggestion.suffix}...
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bottom search form */}
+            <form onSubmit={handleAiTutorRedirect} className="relative z-10 mt-auto">
               <input
-                className="w-full bg-white/20 border-none rounded-xl py-3 pl-4 pr-12 text-white placeholder:text-white/60 focus:ring-2 focus:ring-white/40 outline-none transition-all"
-                placeholder="Ask anything about your subject..."
+                className="w-full bg-white border-2 border-primary/40 rounded-2xl py-3 pl-4 pr-12 text-on-surface placeholder:text-outline focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-inner font-label-md text-label-md"
+                placeholder="How can I help you..."
                 type="text"
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
               />
               <button
                 type="submit"
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-white text-primary flex items-center justify-center hover:bg-secondary-fixed transition-colors active:scale-95 shadow-sm"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center hover:bg-primary-dark transition-colors active:scale-95 shadow-sm"
               >
-                <span className="material-symbols-outlined text-[18px]">send</span>
+                <span className="material-symbols-outlined text-[18px]">search</span>
               </button>
             </form>
           </div>
