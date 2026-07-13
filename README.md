@@ -329,3 +329,5 @@ This project is built for the **Huebits Internship Program**.
 ---
 
 *Built with ❤️ by the StudyMate AI team*
+#   s t u d y m a t e - a i t u t o r  
+ 
